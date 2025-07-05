@@ -100,8 +100,6 @@ Remote ARsistance/
 └── README.md                         # Documentation with feature highlights
 ```
 
-Absolutely! Here's the full **📦 Server Setup** section you can drop into your README, including the `localhost` vs `wss` behavior for Lens Studio editor vs Spectacles device, and clear Ngrok usage:
-
 ---
 
 ## 📦 Server Setup

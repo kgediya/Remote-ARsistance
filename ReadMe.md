@@ -177,7 +177,7 @@ wss://random-subdomain.ngrok.io
 > Pass only `random-subdomain.ngrok.io` to your `wssURL` input.
 > The script will add the `wss://` prefix automatically. 
 ```js
-const socket = new WebSocket("wss://" + script.wssURL);
+ let socket = script.internetModule.createWebSocket("wss://" + script.wssURL);
 ```
 
 

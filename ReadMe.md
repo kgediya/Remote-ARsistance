@@ -21,22 +21,22 @@
 
 ### 🔐 Session Login  
 🔄 Real-time session binding between the Spectacles and Web Client using unique 6-digit codes.
-![Session Login](Previews\login.jpg)
-![Session Management](Previews\login.gif)
+![Session Login](./Previews/login.jpg)
+![Session Management](./Previews/login.gif)
 
 ---
 
 ### 💬 2. Two-Way Chat System  
 🔊 Exchange guidance and instructions between remote expert and AR user using text based chat system.
 
-![Chat Interaction](Previews\chat.jpg)
+![Chat Interaction](./Previews/chat.jpg)
 
 ---
 
 ### 🖊️ 3. Real-Time Annotation  
 🖱️ Click-to-annotate from web reflects in AR view instantly.
 
-![Annotation](Previews\annotate.gif)
+![Annotation](./Previews/annotate.gif)
 
 ---
 

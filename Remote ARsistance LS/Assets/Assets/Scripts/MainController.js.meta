@@ -1,0 +1,58 @@
+- !<AssetImportMetadata/d8a55f9b-4b8f-4b8d-84bb-102e5befff6c>
+  ImportedAssetIds:
+    JavaScriptAsset: !<reference> d6004927-9e58-4834-bf7f-e10aea724113
+  ImporterName: JavaScriptAssetImporter
+  PrimaryAsset: !<reference> d6004927-9e58-4834-bf7f-e10aea724113
+  PackageType: NotAPackage
+  PackagePolicy: CannotBeUnpacked
+  ExtraData:
+    {}
+  AssetDataMap:
+    JavaScriptAsset: !<own> f699911a-eb5c-4df6-837c-e9e29047a640
+  DependentFiles:
+    []
+  ImporterSettings: !<AssetImporterSettings>
+    {}
+  CompressionSettings: !<own> 00000000-0000-0000-0000-000000000000
+- !<ScriptAssetData/f699911a-eb5c-4df6-837c-e9e29047a640>
+  SvgIcon: ""
+  SetupScript:
+    code: ""
+  Description: ""
+  InternalVersion: 0
+  VersionMajor: 0
+  VersionMinor: 0
+  VersionPatch: 0
+  ComponentUid: 3392bf80-b66c-4af4-9e5c-09a8de739da7
+  ExportUid: 00000000-0000-0000-0000-000000000000
+  CurrentVisibility: Editable
+  MaxVisibility: Editable
+  ScriptInputsHidden:
+    chatText: false
+    instantWorldHitTest: false
+    internetModule: false
+    lookAt: false
+    perspectiveCam: false
+    preview: false
+    renderTarget: false
+    sessionCodeText: false
+    textToSpeech: false
+    wssURL: false
+  ScriptTypesHidden:
+    {}
+  ReadMe: !<reference> 00000000-0000-0000-0000-000000000000
+  DeclarationFile: !<reference> 00000000-0000-0000-0000-000000000000
+  DefaultScriptInputs:
+    - preview: !<reference.Image> 00000000-0000-0000-0000-000000000000
+      internetModule: !<reference.InternetModule> 00000000-0000-0000-0000-000000000000
+      wssURL: ""
+      perspectiveCam: !<reference.Camera> 00000000-0000-0000-0000-000000000000
+      renderTarget: !<reference.Texture> 00000000-0000-0000-0000-000000000000
+      lookAt: !<reference.LookAtComponent> 00000000-0000-0000-0000-000000000000
+      instantWorldHitTest: !<reference.ScriptComponent> 00000000-0000-0000-0000-000000000000
+      chatText: !<reference.Text> 00000000-0000-0000-0000-000000000000
+      sessionCodeText: !<reference.Text> 00000000-0000-0000-0000-000000000000
+      textToSpeech: !<reference.TextToSpeechModule> 00000000-0000-0000-0000-000000000000
+  ScriptTypes:
+    -
+      {}

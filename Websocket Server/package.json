@@ -1,0 +1,28 @@
+{
+  "name": "remote-arsistance-server",
+  "version": "1.0.0",
+  "description": "WebSocket server for Remote ARsistance – enabling real-time AR streaming, chat, and annotations.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "keywords": [
+    "WebSocket",
+    "AR",
+    "SnapAR",
+    "Remote Assistance",
+    "Streaming",
+    "Annotation",
+    "Real-time"
+  ],
+  "author": "Krazyy Krunal",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^5.1.0",
+    "ws": "^8.18.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  }
+}

@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Spectacles Live Feed</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 20px;
+      background: #000;
+      color: white;
+      font-family: sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 800px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+    }
+
+    p.title {
+      font-size: 24px;
+      text-align: center;
+      margin: 0;
+    }
+
+    canvas {
+      width: 100%;
+      max-width: 100%;
+      border: 2px solid white;
+    }
+
+    .chat-box {
+      width: 100%;
+      background: #111;
+      border-radius: 8px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .chat-log {
+      height: 150px;
+      overflow-y: auto;
+      background: #222;
+      padding: 8px;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+
+    .chat-input {
+      display: flex;
+      gap: 10px;
+    }
+
+    .chat-input input {
+      flex: 1;
+      padding: 8px;
+      border: none;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+
+    .chat-input button {
+      padding: 8px 12px;
+      background: #3498db;
+      border: none;
+      color: white;
+      font-weight: bold;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .chat-input button:hover {
+      background: #2980b9;
+    }
+
+    .mic-btn {
+      padding: 8px 12px;
+      background: crimson;
+      border: none;
+      color: white;
+      font-weight: bold;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .mic-btn.listening {
+      background: green;
+    }
+
+    #sessionPrompt {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.85);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 999;
+      flex-direction: column;
+      color: white;
+    }
+
+    #sessionPrompt input {
+      padding: 10px;
+      font-size: 16px;
+      margin-top: 10px;
+      border-radius: 4px;
+      border: none;
+      text-transform: uppercase;
+    }
+
+    #sessionPrompt button {
+      margin-top: 10px;
+      padding: 10px 20px;
+      background: #2ecc71;
+      border: none;
+      font-weight: bold;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div id="sessionPrompt">
+    <h2>Enter Session Code</h2>
+    <input type="text" id="sessionCodeInput" placeholder="e.g. ABC123" />
+    <button onclick="joinSession()">Join</button>
+  </div>
+
+  <div class="container" style="display: none;">
+    <p class="title">LIVE STREAM FROM SPECTACLES</p>
+    <canvas id="liveCanvas"></canvas>
+
+    <div class="chat-box">
+      <div class="chat-log" id="chatLog"></div>
+      <div class="chat-input">
+        <input type="text" id="chatInput" placeholder="Type your message..." />
+        <button onclick="sendChat()">Send</button>
+        <button id="micBtn" class="mic-btn" onclick="toggleMic()">🎤</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let socket;
+    let buffer = "";
+    let sessionCode = "";
+
+    function joinSession() {
+      sessionCode = document.getElementById("sessionCodeInput").value.trim().toUpperCase();
+      if (!sessionCode) return alert("Please enter a valid session code");
+
+      socket = new WebSocket("ws://" + location.hostname + ":8080");
+
+      socket.onopen = () => {
+        socket.send(JSON.stringify({ action: "join-session", sessionCode, role: "web" }));
+      };
+
+      socket.onmessage = async function (event) {
+        if (typeof event.data === "string") {
+          if (event.data.startsWith("{")) {
+            const msg = JSON.parse(event.data);
+
+           if (msg.error) {
+            if (msg.error.includes("Spectacles disconnected")) {
+             
+              location.reload();
+              return;
+            }
+            return alert(msg.error);
+          }
+            if (msg.status === "joined") {
+              document.getElementById("sessionPrompt").style.display = "none";
+              document.querySelector(".container").style.display = "flex";
+              return;
+            }
+
+            if (msg.action === "chat" && msg.data?.message) {
+              const node = document.createElement("div");
+              node.textContent = msg.data.message;
+              document.getElementById("chatLog").appendChild(node);
+              document.getElementById("chatLog").scrollTop = document.getElementById("chatLog").scrollHeight;
+            }
+          } else {
+            buffer += event.data;
+            let frameEnd = buffer.indexOf("|||FRAME_END|||");
+
+            while (frameEnd !== -1) {
+              let base64 = buffer.substring(0, frameEnd);
+              buffer = buffer.substring(frameEnd + "|||FRAME_END|||".length);
+              if (base64.length > 100) {
+                try {
+                  const img = new Image();
+                  img.onload = function () {
+                    const canvas = document.getElementById("liveCanvas");
+                    const ctx = canvas.getContext("2d");
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    ctx.drawImage(img, 0, 0);
+                  };
+                  img.src = "data:image/jpeg;base64," + base64;
+                } catch (e) {
+                  console.warn("Invalid image data");
+                }
+              }
+              frameEnd = buffer.indexOf("|||FRAME_END|||");
+            }
+          }
+        }
+      };
+
+      socket.onerror = () => alert("Connection error");
+      socket.onclose = () => alert("Disconnected from server");
+    }
+
+    document.getElementById("liveCanvas").addEventListener("click", (e) => {
+      const rect = liveCanvas.getBoundingClientRect();
+      const x = (e.clientX - rect.left) / liveCanvas.width;
+      const y = (e.clientY - rect.top) / liveCanvas.height;
+      const label = prompt("Enter annotation text:");
+
+      if (label && x >= 0 && x <= 1 && y >= 0 && y <= 1) {
+        const annotation = { type: "text", label, x, y };
+        socket.send(JSON.stringify({ action: "annotate", data: annotation }));
+      }
+    });
+
+    function sendChat() {
+      const input = document.getElementById("chatInput");
+      const message = input.value.trim();
+      if (message) {
+        socket.send(JSON.stringify({ action: "chat", data: { message } }));
+        input.value = "";
+      }
+    }
+
+    // 🎤 Speech Recognition
+    let recognizing = false;
+    let recognition;
+    const micBtn = document.getElementById("micBtn");
+
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.lang = 'en-US';
+
+      recognition.onresult = function (event) {
+        const transcript = event.results[0][0].transcript;
+        document.getElementById("chatInput").value = transcript;
+        sendChat();
+      };
+
+      recognition.onerror = () => {
+        recognizing = false;
+        micBtn.classList.remove("listening");
+        micBtn.textContent = "🎤";
+      };
+
+      recognition.onend = () => {
+        recognizing = false;
+        micBtn.classList.remove("listening");
+        micBtn.textContent = "🎤";
+      };
+    } else {
+      micBtn.disabled = true;
+      micBtn.textContent = "❌";
+    }
+
+    function toggleMic() {
+      if (!recognizing) {
+        recognition.start();
+        micBtn.classList.add("listening");
+        micBtn.textContent = "🎙️";
+        recognizing = true;
+      } else {
+        recognition.stop();
+        micBtn.classList.remove("listening");
+        micBtn.textContent = "🎤";
+        recognizing = false;
+      }
+    }
+  </script>
+</body>
+</html>

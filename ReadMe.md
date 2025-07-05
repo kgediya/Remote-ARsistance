@@ -21,6 +21,8 @@
 
 ### 🔐 Session Login  
 🔄 Real-time session binding between the Spectacles and Web Client using unique 6-digit codes.
+
+
 ![Session Login](./Previews/loginPreview.jpg)
 ![Session Management](./Previews/login.gif)
 

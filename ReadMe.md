@@ -61,6 +61,7 @@
 | Web Backend      | Node.js + Express + WebSocket (ws)      |
 | Frontend         | HTML5, Canvas, JavaScript               |
 | Voice Input      | Lens Studio `AsrModule` + Web Speech API|
+| Camera Stream      | Lens Studio `CameraModule` + Base64 Encoding|
 | UI Rendering     | Live canvas, DOM-based chat & prompt UI |
 
 ---

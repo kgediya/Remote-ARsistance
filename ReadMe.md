@@ -67,11 +67,6 @@
 | UI Rendering     | Live canvas, DOM-based chat & prompt UI |
 
 ---
-Thanks for catching that! Let's add the missing **MainController.js** and update the structure accordingly.
-
-Here’s the corrected **full project structure** for your `Remote ARsistance` repo, now including everything:
-
----
 
 ### 📁 Project Structure
 ```

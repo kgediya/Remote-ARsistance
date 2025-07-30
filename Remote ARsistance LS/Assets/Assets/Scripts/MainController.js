@@ -8,7 +8,7 @@
 //@input Component.Text chatText
 //@input Component.Text sessionCodeText
 //@input Asset.TextToSpeechModule textToSpeech
-
+//@input Asset.Texture screenCropTex
 const cameraModule = require('LensStudio:CameraModule');
 const asrModule = require('LensStudio:AsrModule');
 
@@ -17,6 +17,7 @@ const CameraStreamer = require("./CameraStreamer");
 const ASRHandler = require("./ASRHandler");
 const AnnotationRenderer = require("./AnnotationRenderer");
 const SessionManager = require("./SessionManager")
+
 
 //Initialize WebSocket
 const socket = SocketManager.initSocket(script);
@@ -27,11 +28,13 @@ SocketManager.setHandlers(script, socket, {
     onChat: SocketManager.handleChatMessage,
 });
 
+
 // Delay ASR + Stream until session is confirmed
 SessionManager.initSession(script, socket, "specs", () => {
     script.chatText.text = "Session Connected Sucessfully"
      script.sessionCodeText.text = "Current Session Code: "+global.sessionCode
     CameraStreamer.startStreaming(script, socket, cameraModule);
+   // CameraStreamer.startRendering(script,socket)
     ASRHandler.init(script, socket, asrModule);
     print("Camera & ASR started after session join");
 });

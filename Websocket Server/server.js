@@ -92,7 +92,7 @@ wss.on('connection', (ws) => {
 
         // Handle base64 frame streaming
         buffer += dataStr;
-
+      
         while (buffer.includes('|||FRAME_END|||')) {
             const frameEndIndex = buffer.indexOf('|||FRAME_END|||');
             const base64Frame = buffer.slice(0, frameEndIndex);

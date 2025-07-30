@@ -35,6 +35,7 @@
     perspectiveCam: false
     preview: false
     renderTarget: false
+    screenCropTex: false
     sessionCodeText: false
     textToSpeech: false
     wssURL: false
@@ -53,6 +54,7 @@
       chatText: !<reference.Text> 00000000-0000-0000-0000-000000000000
       sessionCodeText: !<reference.Text> 00000000-0000-0000-0000-000000000000
       textToSpeech: !<reference.TextToSpeechModule> 00000000-0000-0000-0000-000000000000
+      screenCropTex: !<reference.Texture> 00000000-0000-0000-0000-000000000000
   ScriptTypes:
     -
       {}

@@ -166,6 +166,9 @@
         socket.send(JSON.stringify({ action: "join-session", sessionCode, role: "web" }));
       };
 
+  
+
+
       socket.onmessage = async function (event) {
         if (typeof event.data === "string") {
           if (event.data.startsWith("{")) {
@@ -194,9 +197,10 @@
           } else {
             buffer += event.data;
             let frameEnd = buffer.indexOf("|||FRAME_END|||");
-
+            
             while (frameEnd !== -1) {
               let base64 = buffer.substring(0, frameEnd);
+             
               buffer = buffer.substring(frameEnd + "|||FRAME_END|||".length);
               if (base64.length > 100) {
                 try {
@@ -206,7 +210,8 @@
                     const ctx = canvas.getContext("2d");
                     canvas.width = img.width;
                     canvas.height = img.height;
-                    ctx.drawImage(img, 0, 0);
+                    
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
                   };
                   img.src = "data:image/jpeg;base64," + base64;
                 } catch (e) {

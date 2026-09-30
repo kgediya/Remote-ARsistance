@@ -4,7 +4,7 @@
   ImporterName: JavaScriptAssetImporter
   PrimaryAsset: !<reference> d6004927-9e58-4834-bf7f-e10aea724113
   PackageType: NotAPackage
-  PackagePolicy: CannotBeUnpacked
+  LegacyPackagePolicy: ~
   ExtraData:
     {}
   AssetDataMap:
@@ -19,19 +19,19 @@
   SetupScript:
     code: ""
   Description: ""
-  InternalVersion: 0
   VersionMajor: 0
   VersionMinor: 0
   VersionPatch: 0
   ComponentUid: 3392bf80-b66c-4af4-9e5c-09a8de739da7
   ExportUid: 00000000-0000-0000-0000-000000000000
-  CurrentVisibility: Editable
-  MaxVisibility: Editable
+  PackagePolicy: CanBeUnpacked
   ScriptInputsHidden:
+    audioOutput: false
     chatText: false
     instantWorldHitTest: false
     internetModule: false
     lookAt: false
+    microphoneAudio: false
     perspectiveCam: false
     preview: false
     renderTarget: false
@@ -43,6 +43,10 @@
     {}
   ReadMe: !<reference> 00000000-0000-0000-0000-000000000000
   DeclarationFile: !<reference> 00000000-0000-0000-0000-000000000000
+  Tags:
+    []
+  Attachments:
+    []
   DefaultScriptInputs:
     - preview: !<reference.Image> 00000000-0000-0000-0000-000000000000
       internetModule: !<reference.InternetModule> 00000000-0000-0000-0000-000000000000
@@ -55,6 +59,8 @@
       sessionCodeText: !<reference.Text> 00000000-0000-0000-0000-000000000000
       textToSpeech: !<reference.TextToSpeechModule> 00000000-0000-0000-0000-000000000000
       screenCropTex: !<reference.Texture> 00000000-0000-0000-0000-000000000000
+      microphoneAudio: !<reference.AudioTrackAsset> 00000000-0000-0000-0000-000000000000
+      audioOutput: !<reference.AudioTrackAsset> 00000000-0000-0000-0000-000000000000
   ScriptTypes:
     -
       {}

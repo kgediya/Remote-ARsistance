@@ -1,300 +1,126 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Spectacles Live Feed</title>
-  <style>
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      padding: 20px;
-      background: #000;
-      color: white;
-      font-family: sans-serif;
-      display: flex;
-      justify-content: center;
-      align-items: flex-start;
-      min-height: 100vh;
-    }
-
-    .container {
-      width: 100%;
-      max-width: 800px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 20px;
-    }
-
-    p.title {
-      font-size: 24px;
-      text-align: center;
-      margin: 0;
-    }
-
-    canvas {
-      width: 100%;
-      max-width: 100%;
-      border: 2px solid white;
-    }
-
-    .chat-box {
-      width: 100%;
-      background: #111;
-      border-radius: 8px;
-      padding: 10px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .chat-log {
-      height: 150px;
-      overflow-y: auto;
-      background: #222;
-      padding: 8px;
-      border-radius: 4px;
-      font-size: 14px;
-    }
-
-    .chat-input {
-      display: flex;
-      gap: 10px;
-    }
-
-    .chat-input input {
-      flex: 1;
-      padding: 8px;
-      border: none;
-      border-radius: 4px;
-      font-size: 14px;
-    }
-
-    .chat-input button {
-      padding: 8px 12px;
-      background: #3498db;
-      border: none;
-      color: white;
-      font-weight: bold;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-
-    .chat-input button:hover {
-      background: #2980b9;
-    }
-
-    .mic-btn {
-      padding: 8px 12px;
-      background: crimson;
-      border: none;
-      color: white;
-      font-weight: bold;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-
-    .mic-btn.listening {
-      background: green;
-    }
-
-    #sessionPrompt {
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.85);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      z-index: 999;
-      flex-direction: column;
-      color: white;
-    }
-
-    #sessionPrompt input {
-      padding: 10px;
-      font-size: 16px;
-      margin-top: 10px;
-      border-radius: 4px;
-      border: none;
-      text-transform: uppercase;
-    }
-
-    #sessionPrompt button {
-      margin-top: 10px;
-      padding: 10px 20px;
-      background: #2ecc71;
-      border: none;
-      font-weight: bold;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-  </style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b1014">
+  <meta name="description" content="RelayView connects field technicians and remote experts through live vision, voice, and spatial guidance.">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="icon" type="image/png" href="/icon.png">
+  <link rel="apple-touch-icon" href="/icon-192.png">
+  <link rel="stylesheet" href="/app.css">
+  <title>RelayView — Remote assistance, in focus</title>
 </head>
 <body>
-  <div id="sessionPrompt">
-    <h2>Enter Session Code</h2>
-    <input type="text" id="sessionCodeInput" placeholder="e.g. ABC123" />
-    <button onclick="joinSession()">Join</button>
-  </div>
-
-  <div class="container" style="display: none;">
-    <p class="title">LIVE STREAM FROM SPECTACLES</p>
-    <canvas id="liveCanvas"></canvas>
-
-    <div class="chat-box">
-      <div class="chat-log" id="chatLog"></div>
-      <div class="chat-input">
-        <input type="text" id="chatInput" placeholder="Type your message..." />
-        <button onclick="sendChat()">Send</button>
-        <button id="micBtn" class="mic-btn" onclick="toggleMic()">🎤</button>
+<svg class="icon-sprite" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14m-6-6 6 6-6 6"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+  <symbol id="i-close" viewBox="0 0 24 24"><path d="M5 5 19 19M19 5 5 19"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></symbol>
+  <symbol id="i-headset" viewBox="0 0 24 24"><path d="M4 13v-2a8 8 0 0 1 16 0v2M4 13h3v6H6a2 2 0 0 1-2-2v-4Zm16 0h-3v6h1a2 2 0 0 0 2-2v-4ZM17 20a5 5 0 0 1-5 2h-2"/></symbol>
+  <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3m-4 0h8"/></symbol>
+  <symbol id="i-mic-off" viewBox="0 0 24 24"><path d="m3 3 18 18M9 9v3a3 3 0 0 0 5.1 2.1M15 9V6a3 3 0 0 0-5.7-1.3M5 11a7 7 0 0 0 12 4.9M19 11a7 7 0 0 1-.6 2.8M12 18v3m-4 0h8"/></symbol>
+  <symbol id="i-phone" viewBox="0 0 24 24"><path d="M4 15c2.1-2 4.8-3 8-3s5.9 1 8 3l-1.8 3a2 2 0 0 1-2.3.9l-2.4-.7a2 2 0 0 1-1.4-1.9v-.3h-.2v.3a2 2 0 0 1-1.4 1.9l-2.4.7a2 2 0 0 1-2.3-.9L4 15Z"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s7-5.5 7-11a7 7 0 0 0-14 0c0 5.5 7 11 7 11Z"/><circle cx="12" cy="10" r="2.5"/></symbol>
+  <symbol id="i-send" viewBox="0 0 24 24"><path d="m21 3-7.5 18-3.2-7.3L3 10.5 21 3Zm-10.7 10.7L21 3"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></symbol>
+  <symbol id="i-signal" viewBox="0 0 24 24"><path d="M4 18v2m5-6v6m5-10v10m5-16v16"/></symbol>
+  <symbol id="i-video" viewBox="0 0 24 24"><rect x="3" y="6" width="14" height="12" rx="2"/><path d="m17 10 4-3v10l-4-3"/></symbol>
+  <symbol id="i-spark" viewBox="0 0 24 24"><path d="m12 2 1.8 7.2L21 11l-7.2 1.8L12 20l-1.8-7.2L3 11l7.2-1.8L12 2ZM19 18l.5 1.5L21 20l-1.5.5L19 22l-.5-1.5L17 20l1.5-.5L19 18Z"/></symbol>
+</svg>
+<header class="app-header">
+  <a class="brand" href="/" aria-label="RelayView home"><span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></span><span>Relay<span class="brand-accent">View</span></span></a>
+  <div class="header-right"><span class="header-label">EXPERT WORKSPACE</span><span class="secure-pill"><svg class="icon"><use href="#i-shield"/></svg> Private session</span></div>
+</header>
+<main>
+  <section class="welcome layout-shell" id="joinPanel" aria-labelledby="welcomeTitle">
+    <div class="welcome-copy">
+      <div class="eyebrow"><span class="eyebrow-line"></span> REMOTE ASSISTANCE, REIMAGINED</div>
+      <h1 id="welcomeTitle">Close the distance.<br><em>See the solution.</em></h1>
+      <p class="welcome-lede">Join your technician's view in seconds. Talk through the problem, send precise guidance, and keep the work moving.</p>
+      <div class="feature-list">
+        <div><span class="feature-icon"><svg class="icon"><use href="#i-video"/></svg></span><span><strong>Live perspective</strong><small>See what the technician sees</small></span></div>
+        <div><span class="feature-icon"><svg class="icon"><use href="#i-headset"/></svg></span><span><strong>Two-way voice</strong><small>Talk naturally while you work</small></span></div>
+        <div><span class="feature-icon"><svg class="icon"><use href="#i-pin"/></svg></span><span><strong>Point it out</strong><small>Place guidance directly in their view</small></span></div>
       </div>
     </div>
+    <div class="join-wrap">
+      <div class="join-card">
+        <div class="join-card-top"><span class="join-step">01 / CONNECT</span><span class="join-orbit" aria-hidden="true"><span></span></span></div>
+        <h2>Join a session</h2>
+        <p>Ask the technician for the session code displayed on their Spectacles.</p>
+        <form id="joinForm" novalidate>
+          <label for="sessionCode">SESSION CODE</label>
+          <input id="sessionCode" inputmode="text" maxlength="7" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="XXX-XXX" aria-describedby="codeHint" required>
+          <small id="codeHint">Six characters · displayed as XXX-XXX</small>
+          <button id="joinButton" class="button button-primary join-submit" type="submit"><span>Connect to technician</span><svg class="icon"><use href="#i-arrow"/></svg></button>
+        </form>
+        <div class="join-foot"><svg class="icon"><use href="#i-shield"/></svg> Only people with the session code can join.</div>
+      </div>
+      <div class="join-decoration" aria-hidden="true"><span class="decoration-cross">+</span> BUILT FOR THE MOMENT THAT MATTERS <span class="decoration-cross">+</span></div>
+    </div>
+  </section>
+  <section class="workspace layout-shell" id="sessionPanel" aria-label="Expert session" hidden>
+    <div class="workspace-heading">
+      <div><div class="eyebrow"><span class="eyebrow-line"></span> LIVE ASSISTANCE</div><h1>Expert workspace</h1><p>Your technician's perspective, in real time.</p></div>
+      <div class="workspace-actions"><div class="session-chip"><span>SESSION</span><strong id="activeCode">--------</strong><button class="icon-button" id="copyCodeButton" type="button" aria-label="Copy session code" title="Copy session code"><svg class="icon"><use href="#i-copy"/></svg></button></div><button id="leaveButton" class="button button-outline" type="button">Leave session</button></div>
+    </div>
+    <div id="reconnectBanner" class="reconnect-banner" hidden role="alert">
+      <div class="reconnect-info">
+        <span class="reconnect-spinner" aria-hidden="true"></span>
+        <span id="reconnectMessage">Connection interrupted. Reconnecting...</span>
+      </div>
+      <div class="reconnect-actions">
+        <button id="reconnectRetryBtn" class="button button-quiet button-sm" type="button">Retry now</button>
+        <button id="reconnectLeaveBtn" class="button button-outline button-sm" type="button">Leave session</button>
+      </div>
+    </div>
+    <div class="workspace-grid">
+      <div class="visual-column">
+        <section class="video-card" aria-label="Live technician view">
+          <div class="card-heading"><div class="card-heading-title"><span class="live-indicator" id="liveIndicator"></span><span>Technician view</span></div><div class="camera-meta"><svg class="icon"><use href="#i-video"/></svg> SPECTACLES CAMERA</div></div>
+          <div class="video-stage" id="videoStage">
+            <div class="stage-grid" aria-hidden="true"></div>
+            <div class="video-placeholder" id="videoPlaceholder"><span class="placeholder-icon"><svg class="icon"><use href="#i-video"/></svg></span><strong>Waiting for live view</strong><span>The camera feed will appear when the technician is ready.</span></div>
+            <canvas id="liveCanvas" width="480" height="564" aria-label="Live camera feed. Click to annotate." hidden></canvas>
+            <div class="feed-stalled-overlay" id="feedWarning" hidden>
+              <div class="feed-stalled-content">
+                <div class="stalled-pulse-ring">
+                  <svg class="icon"><use href="#i-video"/></svg>
+                </div>
+                <strong id="feedWarningTitle">Camera feed interrupted</strong>
+                <span id="feedWarningText">Waiting for video stream from technician's Spectacles...</span>
+              </div>
+            </div>
+            <div class="stage-corner stage-corner-tl" aria-hidden="true"></div><div class="stage-corner stage-corner-tr" aria-hidden="true"></div><div class="stage-corner stage-corner-bl" aria-hidden="true"></div><div class="stage-corner stage-corner-br" aria-hidden="true"></div>
+            <span class="stage-live-tag" id="feedBadge"><span></span> WAITING FOR FEED</span>
+          </div>
+          <div class="video-foot"><span><svg class="icon"><use href="#i-pin"/></svg> Click anywhere on the live image to add a note</span><span id="latency">Measuring connection…</span></div>
+        </section>
+        <section class="call-card" aria-label="Voice call controls">
+          <div class="call-copy"><div class="call-icon"><svg class="icon"><use href="#i-headset"/></svg></div><div><strong>Voice connection</strong><span id="callState">Start a call to speak with the technician</span></div></div>
+          <div class="call-actions"><button id="muteButton" type="button" class="button button-quiet" disabled><svg class="icon"><use id="muteIcon" href="#i-mic"/></svg><span>Mute</span></button><button id="callButton" type="button" class="button button-primary"><svg class="icon"><use href="#i-phone"/></svg><span>Start call</span></button></div>
+        </section>
+      </div>
+      <aside class="guidance-card" aria-label="Guidance and messages">
+        <div class="guidance-header"><div><span class="guidance-kicker">CONVERSATION</span><h2>Guidance</h2></div><span class="guidance-symbol"><svg class="icon"><use href="#i-spark"/></svg></span></div>
+        <div class="guidance-intro">Send instructions the technician can read on their Spectacles. They can reply by voice.</div>
+        <div id="chatLog" class="chat-log" role="log" aria-live="polite" aria-label="Session messages"><div class="chat-empty" id="chatEmpty"><span class="empty-icon"><svg class="icon"><use href="#i-spark"/></svg></span><strong>A clear line of sight</strong><span>Your conversation will appear here.</span></div></div>
+        <form id="chatForm" class="chat-compose"><label for="chatInput">MESSAGE</label><div class="chat-input-wrap"><textarea id="chatInput" rows="2" maxlength="500" placeholder="Share a step or suggestion…" aria-label="Message" required></textarea><div class="chat-tools"><button type="button" id="micButton" class="icon-button" hidden aria-label="Dictate a message" title="Dictate a message"><svg class="icon"><use href="#i-mic"/></svg></button><button id="sendButton" type="submit" class="send-button" aria-label="Send message" title="Send message"><svg class="icon"><use href="#i-send"/></svg></button></div></div><small>Press Enter to send · Shift+Enter for a new line</small></form>
+      </aside>
+    </div>
+  </section>
+</main>
+<div id="toast" class="toast" role="status" aria-live="polite" hidden><svg class="icon"><use href="#i-check"/></svg><span id="status">Ready to connect.</span><button type="button" id="dismissToast" class="toast-close" aria-label="Dismiss notification"><svg class="icon"><use href="#i-close"/></svg></button></div>
+<div id="modal" class="modal-backdrop" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle" aria-describedby="modalDescription">
+    <button class="modal-x" id="modalX" type="button" aria-label="Close dialog"><svg class="icon"><use href="#i-close"/></svg></button>
+    <span class="modal-glyph"><svg class="icon"><use href="#i-pin"/></svg></span>
+    <div class="modal-kicker" id="modalKicker">ANNOTATION</div><h2 id="modalTitle">Add a note</h2><p id="modalDescription">This note will appear in the technician's view.</p>
+    <form id="modalForm"><div id="modalInputWrap"><label for="modalInput">YOUR NOTE</label><input id="modalInput" maxlength="80" autocomplete="off" placeholder="e.g. Check this valve"></div><div class="modal-actions"><button id="modalCancel" class="button button-outline" type="button">Cancel</button><button id="modalConfirm" class="button button-primary" type="submit">Place note</button></div></form>
   </div>
-
-  <script>
-    let socket;
-    let buffer = "";
-    let sessionCode = "";
-
-    function joinSession() {
-      sessionCode = document.getElementById("sessionCodeInput").value.trim().toUpperCase();
-      if (!sessionCode) return alert("Please enter a valid session code");
-
-      socket = new WebSocket("ws://" + location.hostname + ":8080");
-
-      socket.onopen = () => {
-        socket.send(JSON.stringify({ action: "join-session", sessionCode, role: "web" }));
-      };
-
-  
-
-
-      socket.onmessage = async function (event) {
-        if (typeof event.data === "string") {
-          if (event.data.startsWith("{")) {
-            const msg = JSON.parse(event.data);
-
-           if (msg.error) {
-            if (msg.error.includes("Spectacles disconnected")) {
-             
-              location.reload();
-              return;
-            }
-            return alert(msg.error);
-          }
-            if (msg.status === "joined") {
-              document.getElementById("sessionPrompt").style.display = "none";
-              document.querySelector(".container").style.display = "flex";
-              return;
-            }
-
-            if (msg.action === "chat" && msg.data?.message) {
-              const node = document.createElement("div");
-              node.textContent = msg.data.message;
-              document.getElementById("chatLog").appendChild(node);
-              document.getElementById("chatLog").scrollTop = document.getElementById("chatLog").scrollHeight;
-            }
-          } else {
-            buffer += event.data;
-            let frameEnd = buffer.indexOf("|||FRAME_END|||");
-            
-            while (frameEnd !== -1) {
-              let base64 = buffer.substring(0, frameEnd);
-             
-              buffer = buffer.substring(frameEnd + "|||FRAME_END|||".length);
-              if (base64.length > 100) {
-                try {
-                  const img = new Image();
-                  img.onload = function () {
-                    const canvas = document.getElementById("liveCanvas");
-                    const ctx = canvas.getContext("2d");
-                    canvas.width = img.width;
-                    canvas.height = img.height;
-                    
-                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                  };
-                  img.src = "data:image/jpeg;base64," + base64;
-                } catch (e) {
-                  console.warn("Invalid image data");
-                }
-              }
-              frameEnd = buffer.indexOf("|||FRAME_END|||");
-            }
-          }
-        }
-      };
-
-      socket.onerror = () => alert("Connection error");
-      socket.onclose = () => alert("Disconnected from server");
-    }
-
-    document.getElementById("liveCanvas").addEventListener("click", (e) => {
-      const rect = liveCanvas.getBoundingClientRect();
-      const x = (e.clientX - rect.left) / liveCanvas.width;
-      const y = (e.clientY - rect.top) / liveCanvas.height;
-      const label = prompt("Enter annotation text:");
-
-      if (label && x >= 0 && x <= 1 && y >= 0 && y <= 1) {
-        const annotation = { type: "text", label, x, y };
-        socket.send(JSON.stringify({ action: "annotate", data: annotation }));
-      }
-    });
-
-    function sendChat() {
-      const input = document.getElementById("chatInput");
-      const message = input.value.trim();
-      if (message) {
-        socket.send(JSON.stringify({ action: "chat", data: { message } }));
-        input.value = "";
-      }
-    }
-
-    // 🎤 Speech Recognition
-    let recognizing = false;
-    let recognition;
-    const micBtn = document.getElementById("micBtn");
-
-    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      recognition = new SpeechRecognition();
-      recognition.continuous = false;
-      recognition.lang = 'en-US';
-
-      recognition.onresult = function (event) {
-        const transcript = event.results[0][0].transcript;
-        document.getElementById("chatInput").value = transcript;
-        sendChat();
-      };
-
-      recognition.onerror = () => {
-        recognizing = false;
-        micBtn.classList.remove("listening");
-        micBtn.textContent = "🎤";
-      };
-
-      recognition.onend = () => {
-        recognizing = false;
-        micBtn.classList.remove("listening");
-        micBtn.textContent = "🎤";
-      };
-    } else {
-      micBtn.disabled = true;
-      micBtn.textContent = "❌";
-    }
-
-    function toggleMic() {
-      if (!recognizing) {
-        recognition.start();
-        micBtn.classList.add("listening");
-        micBtn.textContent = "🎙️";
-        recognizing = true;
-      } else {
-        recognition.stop();
-        micBtn.classList.remove("listening");
-        micBtn.textContent = "🎤";
-        recognizing = false;
-      }
-    }
-  </script>
+</div>
+<script defer src="/call.js"></script>
+<script defer src="/app.js"></script>
 </body>
 </html>

@@ -1,6 +1,6 @@
 # 🧠 Remote ARsistance
 
-**Remote ARsistance** is a real-time, session-based remote assistance tool powered by **SnapAR Glasses Spectacles**. It enables seamless live **video streaming**, **annotation**, and **chat communication** between a field technician and a remote expert  using **WebSockets**, **Speech Recognition (ASR)**, and **interactive UI overlays**.
+**Remote ARsistance** is a session-based support tool for Specs. Its expert web portal is branded **RelayView**. A field technician shares live camera frames with a remote expert, who can speak back through a two-way voice call, send chat, and place annotations.
 
 > ⚡ Ideal for remote support, field repair, inspection workflows, and collaborative XR tasks.
 
@@ -20,7 +20,7 @@
 ---
 
 ### 🔐 Session Login  
-🔄 Real-time session binding between the Spectacles and Web Client using unique 6-digit codes.
+🔄 Real-time session binding between Specs and the web client using six-character codes displayed as `XXX-XXX`.
 
 
 ![Session Login](./Previews/loginPreview.jpg)
@@ -52,6 +52,11 @@
 ### 🎙️ 5. ASR Module (Automatic Speech Recognition)
 - Real-time speech-to-text using Lens Studio's `AsrModule`.
 - Spectacles user can talk — message appears instantly on web.
+
+### 📞 6. Two-Way Voice Call
+- The expert starts a call from the web portal and grants microphone access.
+- Specs and the browser exchange live PCM audio through the session WebSocket.
+- The expert can mute the microphone or end the call.
 
 ---
 
@@ -93,7 +98,7 @@ Remote ARsistance/
 │           ├── AnnotationRenderer.js     # Draws annotation UI from web
 │           ├── ASRHandler.js             # Uses speech API to convert to text
 │           ├── CameraStream.js          # Captures video feed and sends to web
-│           ├── SessionManager.js        # Handles session code generation/login
+│           ├── SessionManager.js        # Handles session creation/login
 │           ├── WebSocketClient.js       # Client logic to talk to Node WS server
 │           └── MainController.js        # Central coordinator (initializes flow)
 │
@@ -169,7 +174,7 @@ wss://random-subdomain.ngrok.io
 ```
 
 > 💡 **Inside Lens Studio**:
-> Pass only `random-subdomain.ngrok.io` to your `wssURL` input.
+> Pass only the server host to the existing `wssURL` input. The scene currently points to the deployed Cloud Run host. See [DEPLOYMENT.md](DEPLOYMENT.md) for device setup.
 > The script will add the `wss://` prefix automatically. 
 ```js
  let socket = script.internetModule.createWebSocket("wss://" + script.wssURL);
@@ -183,12 +188,13 @@ wss://random-subdomain.ngrok.io
 
 ## 🧪 How It Works
 
-1. **Spectacles User** starts the Lens → Generates a session code (e.g., `KD87FZ`)
+1. **Specs user** starts the Lens → The server generates a session code (e.g., `KD87FZ24`)
 2. **Web Client** enters the code on the browser → joins the session
 3. Once connected:
    - Spectacles stream begins
    - Chat + ASR are enabled
    - Web can annotate directly on live feed
+   - Expert can start a two-way voice call
 4. If specs user disconnects, the session is cleaned up and auto-refreshes on web.
 
 ---
@@ -200,7 +206,6 @@ wss://random-subdomain.ngrok.io
 ---
 
 ## ✨ Future Work
-- Voice communication
 - Multi-user conferencing
 - Drawings, Shapes etc.
 
@@ -209,4 +214,3 @@ wss://random-subdomain.ngrok.io
 ## 🧠 Made With Love by Krazyy Krunal
 
 > ⚙️ *All Things Krazyy* | XR for Real Impact
-

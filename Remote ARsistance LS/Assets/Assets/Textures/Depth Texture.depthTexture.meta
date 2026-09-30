@@ -4,7 +4,7 @@
   ImporterName: DepthTextureImporter
   PrimaryAsset: !<reference> a6300849-d6b5-44fe-b96f-3a3cd2e2303e
   PackageType: NotAPackage
-  PackagePolicy: CannotBeUnpacked
+  LegacyPackagePolicy: ~
   ExtraData:
     {}
   AssetDataMap:

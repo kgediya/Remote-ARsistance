@@ -2,8 +2,8 @@
   PackagePath: ""
   UseScreenResolution: false
   Resolution:
-    x: 798
-    y: 600
+    x: 480
+    y: 360
   ResolutionScale: 1.000000
   AntialiasingMode: Disabled
   AntialiasingQuality: Ultra

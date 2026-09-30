@@ -9,38 +9,83 @@
 //@input Component.Text sessionCodeText
 //@input Asset.TextToSpeechModule textToSpeech
 //@input Asset.Texture screenCropTex
+//@input Asset.AudioTrackAsset microphoneAudio
+//@input Asset.AudioTrackAsset audioOutput
+
 const cameraModule = require('LensStudio:CameraModule');
 const asrModule = require('LensStudio:AsrModule');
 
+const ChatUI = require("./ChatUI");
 const SocketManager = require("./SocketManager");
 const CameraStreamer = require("./CameraStreamer");
 const ASRHandler = require("./ASRHandler");
 const AnnotationRenderer = require("./AnnotationRenderer");
-const SessionManager = require("./SessionManager")
+const SessionManager = require("./SessionManager");
+const VoiceCall = require("./VoiceCall");
 
+// Initialize elevated AR Chat & HUD UI
+ChatUI.init(script);
 
-//Initialize WebSocket
+// Initialize WebSocket connection
 const socket = SocketManager.initSocket(script);
+if (socket) {
+    print("[ARsistance][main] Lens started, WebSocket initializing");
+    let active = false;
+    let voiceCall = null;
 
-// Bind incoming messages
-SocketManager.setHandlers(script, socket, {
-    onAnnotation: AnnotationRenderer.renderTextAnnotation,
-    onChat: SocketManager.handleChatMessage,
-});
+    const isJoined = SessionManager.initSession(script, socket, function () {
+        print("[ARsistance][main] expert joined; activating camera");
+        active = true;
+        try {
+            CameraStreamer.startStreaming(script, socket, cameraModule, function () { return active; });
+        } catch (error) {
+            print("[ARsistance][main] camera startup exception: " + error);
+            ChatUI.showAlert("Camera error: " + error, 5.0);
+        }
+    }, function () {
+        print("[ARsistance][main] expert disconnected");
+        active = false;
+        CameraStreamer.stopStreaming();
+        if (voiceCall) voiceCall.stop();
+        ASRHandler.stop(asrModule);
+    });
 
+    SocketManager.setHandlers(script, socket, AnnotationRenderer.renderTextAnnotation);
 
-// Delay ASR + Stream until session is confirmed
-SessionManager.initSession(script, socket, "specs", () => {
-    script.chatText.text = "Session Connected Sucessfully"
-     script.sessionCodeText.text = "Current Session Code: "+global.sessionCode
-    CameraStreamer.startStreaming(script, socket, cameraModule);
-   // CameraStreamer.startRendering(script,socket)
-    ASRHandler.init(script, socket, asrModule);
-    print("Camera & ASR started after session join");
-});
+    voiceCall = VoiceCall.init(script, socket, isJoined, function () {
+        print("[ARsistance][call] voice call connected - updating HUD and disabling voice-to-text");
+        // Disable voice-to-text completely during voice call
+        ASRHandler.stop(asrModule);
 
-// Speech chat send trigger
-global.behaviorSystem.addCustomTriggerResponse('chat-ready', () => {
-    socket.send(JSON.stringify({ action: 'specs-chat', text: global.chatText }));
-    print('Chat Packet Sent Over Socket');
-});
+        // Show call status in the in-lens HUD
+        if (isJoined.setCallActive) {
+            isJoined.setCallActive(true);
+        }
+        ChatUI.showAlert("🎙 Voice call connected", 3.0);
+    }, function () {
+        print("[ARsistance][call] voice call ended - restoring HUD");
+        // Restore in-lens HUD to normal live view
+        if (isJoined.setCallActive) {
+            isJoined.setCallActive(false);
+        }
+        ChatUI.showAlert("Voice call ended", 2.5);
+
+        // Keep voice-to-text stopped to prevent audio hardware collision & camera crash
+        ASRHandler.stop(asrModule);
+    }, function () {
+        print("[ARsistance][call] mic stall detected - prompting user on Spectacles HUD");
+        ChatUI.showAlert("⚠️ Mic silent · Check Spectacles\nRestart device if issue persists", 7.0);
+    });
+
+    if (global.behaviorSystem) {
+        global.behaviorSystem.addCustomTriggerResponse("chat-ready", function () {
+            if (isJoined() && socket.readyState === 1 && global.chatText) {
+                try {
+                    socket.send(JSON.stringify({ action: "specs-chat", text: global.chatText }));
+                } catch (e) {
+                    print("[ARsistance][main] chat send error: " + e);
+                }
+            }
+        });
+    }
+}

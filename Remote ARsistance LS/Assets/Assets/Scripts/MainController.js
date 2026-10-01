@@ -26,9 +26,9 @@ const VoiceCall = require("./VoiceCall");
 // Initialize elevated AR Chat & HUD UI
 ChatUI.init(script);
 
-// Initialize WebSocket connection
-const socket = SocketManager.initSocket(script);
-if (socket) {
+// Initialize WebSocket connection via Geo-Discovery Ping
+SocketManager.initSocket(script, function (socket) {
+    if (!socket) return;
     print("[ARsistance][main] Lens started, WebSocket initializing");
     let active = false;
     let voiceCall = null;
@@ -88,4 +88,5 @@ if (socket) {
             }
         });
     }
-}
+});
+

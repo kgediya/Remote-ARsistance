@@ -85,7 +85,9 @@ test('health endpoint responds', async () => {
   try {
     const response = await fetch('http://127.0.0.1:' + server.address().port + '/api/health');
     assert.equal(response.status, 200);
-    assert.deepEqual(await response.json(), { status: 'ok' });
+    const data = await response.json();
+    assert.equal(data.status, 'ok');
+    assert.ok(data.region);
   } finally {
     await new Promise(resolve => server.close(resolve));
   }
@@ -157,6 +159,34 @@ test('server relays mic-status notification from specs to web client', async () 
     assert.equal(received.status, 'waiting');
     assert.equal(received.message, 'Mic silent');
   } finally {
+    for (const ws of clients) ws.terminate();
+    await new Promise(resolve => server.close(resolve));
+  }
+});
+
+test('server supports regional session codes and normalized matching', async () => {
+  process.env.RELAYVIEW_REGION = 'IN';
+  const server = createServer();
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  const url = 'ws://127.0.0.1:' + server.address().port;
+  const clients = [];
+  try {
+    const specs = await connect(url); clients.push(specs);
+    specs.send(JSON.stringify({ action: 'create-session' }));
+    const created = JSON.parse(await next(specs));
+    assert.ok(created.sessionCode.startsWith('IN-'));
+    assert.equal(created.region, 'IN');
+
+    // Test joining with core code without prefix
+    const coreCode = created.sessionCode.slice(3);
+    const web = await connect(url); clients.push(web);
+    web.send(JSON.stringify({ action: 'join-session', role: 'web', sessionCode: coreCode }));
+    const joined = JSON.parse(await next(web));
+    assert.equal(joined.status, 'joined');
+    assert.equal(joined.region, 'IN');
+    await next(specs);
+  } finally {
+    delete process.env.RELAYVIEW_REGION;
     for (const ws of clients) ws.terminate();
     await new Promise(resolve => server.close(resolve));
   }

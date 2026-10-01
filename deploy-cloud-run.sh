@@ -15,6 +15,15 @@ if [[ -z "$(gcloud auth list --filter='status:ACTIVE' --format='value(account)')
   exit 1
 fi
 
+relayview_region="${RELAYVIEW_REGION:-}"
+if [[ -z "$relayview_region" ]]; then
+  if [[ "$region" == *"asia"* ]]; then
+    relayview_region="IN"
+  else
+    relayview_region="US"
+  fi
+fi
+
 gcloud services enable run.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com --project "$project_id"
 gcloud run deploy "$service" \
   --project "$project_id" \
@@ -29,6 +38,6 @@ gcloud run deploy "$service" \
   --memory 512Mi \
   --port 8080 \
   --session-affinity \
-  --set-env-vars DEBUG_LOGS=1 \
+  --set-env-vars "DEBUG_LOGS=1,RELAYVIEW_REGION=${relayview_region}" \
   --quiet
 gcloud run services describe "$service" --project "$project_id" --region "$region" --format='value(status.url)'

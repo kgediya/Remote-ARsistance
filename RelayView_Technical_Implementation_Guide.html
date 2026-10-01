@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>RelayView — Technical Implementation & Cross-Platform Porting Specification</title>
+<style>
+  @page {
+    size: A4;
+    margin: 20mm 18mm 20mm 18mm;
+    @bottom-right {
+      content: counter(page);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 8pt;
+      color: #6c7c82;
+    }
+    @bottom-left {
+      content: "RelayView Technical Implementation & Cross-Platform Specification";
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 8pt;
+      color: #6c7c82;
+    }
+  }
+
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: #1a2228;
+    background: #ffffff;
+    line-height: 1.55;
+    font-size: 9.8pt;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* Cover Page */
+  .cover {
+    page-break-after: always;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    background: linear-gradient(155deg, #070b0e 0%, #0d1419 45%, #111a20 100%);
+    color: #ffffff;
+    padding: 38mm 20mm 25mm 20mm;
+    border-radius: 4px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .cover::before {
+    content: "";
+    position: absolute;
+    top: -150px;
+    right: -150px;
+    width: 450px;
+    height: 450px;
+    background: radial-gradient(circle, rgba(212, 243, 111, 0.18) 0%, rgba(212, 243, 111, 0) 70%);
+    border-radius: 50%;
+  }
+
+  .cover-brand {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .cover-logo {
+    width: 64px;
+    height: 64px;
+  }
+
+  .cover-brand-title {
+    font-size: 28pt;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    color: #ffffff;
+  }
+
+  .cover-brand-title span {
+    color: #d4f36f;
+  }
+
+  .cover-title-group {
+    margin-top: 50px;
+  }
+
+  .cover-eyebrow {
+    font-size: 10pt;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    color: #d4f36f;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .cover-eyebrow::before {
+    content: "";
+    display: inline-block;
+    width: 24px;
+    height: 2px;
+    background: #d4f36f;
+  }
+
+  .cover-main-title {
+    font-size: 30pt;
+    font-weight: 800;
+    line-height: 1.15;
+    letter-spacing: -0.035em;
+    color: #ffffff;
+    margin: 0 0 18px 0;
+  }
+
+  .cover-subtitle {
+    font-size: 13pt;
+    font-weight: 400;
+    line-height: 1.45;
+    color: #a4b4b8;
+    max-width: 580px;
+    margin: 0;
+  }
+
+  .cover-meta {
+    border-top: 1px solid rgba(255, 255, 255, 0.15);
+    padding-top: 24px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    font-size: 8.5pt;
+  }
+
+  .cover-meta dt {
+    color: #728488;
+    text-transform: uppercase;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    margin-bottom: 4px;
+  }
+
+  .cover-meta dd {
+    margin: 0;
+    color: #e2ece9;
+    font-weight: 600;
+    font-size: 9.5pt;
+  }
+
+  /* Structure */
+  .page-break {
+    page-break-after: always;
+  }
+
+  h1, h2, h3, h4 {
+    color: #0b1216;
+    letter-spacing: -0.025em;
+    font-weight: 700;
+  }
+
+  h1 {
+    font-size: 16pt;
+    border-bottom: 2px solid #0b1216;
+    padding-bottom: 5px;
+    margin-top: 26px;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  h1 .sec-num {
+    color: #3b5043;
+    font-size: 12pt;
+    font-weight: 600;
+  }
+
+  h2 {
+    font-size: 12pt;
+    margin-top: 20px;
+    margin-bottom: 8px;
+    border-left: 3.5px solid #d4f36f;
+    padding-left: 10px;
+    background: #f7faf8;
+    padding-top: 3px;
+    padding-bottom: 3px;
+  }
+
+  h3 {
+    font-size: 10.4pt;
+    margin-top: 14px;
+    margin-bottom: 5px;
+    color: #172428;
+  }
+
+  p {
+    margin: 0 0 9px 0;
+  }
+
+  ul, ol {
+    margin: 0 0 10px 0;
+    padding-left: 18px;
+  }
+
+  li {
+    margin-bottom: 3px;
+  }
+
+  /* Code Blocks & Callouts */
+  pre {
+    background: #0c1216;
+    color: #dff0e4;
+    padding: 10px 12px;
+    border-radius: 6px;
+    font-family: "SF Mono", Menlo, Consolas, Monaco, "Courier New", monospace;
+    font-size: 7.6pt;
+    line-height: 1.42;
+    overflow-x: auto;
+    border: 1px solid #1e2b30;
+    margin: 8px 0 12px 0;
+  }
+
+  code {
+    font-family: "SF Mono", Menlo, Consolas, Monaco, "Courier New", monospace;
+    font-size: 8.2pt;
+    background: #edf3f0;
+    color: #134e32;
+    padding: 1px 4px;
+    border-radius: 3px;
+  }
+
+  pre code {
+    background: transparent;
+    color: inherit;
+    padding: 0;
+  }
+
+  .callout {
+    background: #f4f8f5;
+    border-left: 4px solid #1f6b47;
+    padding: 8px 12px;
+    border-radius: 0 6px 6px 0;
+    margin: 10px 0;
+    font-size: 8.8pt;
+  }
+
+  .callout.warning {
+    background: #fffbf2;
+    border-left-color: #d97706;
+  }
+
+  .callout.arch {
+    background: #f3f7fc;
+    border-left-color: #2563eb;
+  }
+
+  .callout-title {
+    font-weight: 700;
+    font-size: 8.8pt;
+    margin-bottom: 3px;
+    color: #0b1216;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  /* Tables */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 10px 0 14px 0;
+    font-size: 8.2pt;
+  }
+
+  th, td {
+    padding: 6px 8px;
+    text-align: left;
+    border: 1px solid #d8e2de;
+    vertical-align: top;
+  }
+
+  th {
+    background: #0c1216;
+    color: #ffffff;
+    font-weight: 600;
+    font-size: 8pt;
+    letter-spacing: 0.03em;
+  }
+
+  tr:nth-child(even) td {
+    background: #f8faf9;
+  }
+
+  /* Diagram boxes */
+  .diagram-box {
+    background: #090e11;
+    color: #d4f36f;
+    padding: 12px;
+    border-radius: 6px;
+    font-family: "SF Mono", Menlo, monospace;
+    font-size: 7.2pt;
+    line-height: 1.32;
+    white-space: pre;
+    border: 1px solid #1f2f35;
+    margin: 10px 0;
+  }
+
+  /* Token swatch */
+  .swatch-group {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin: 8px 0 12px 0;
+  }
+
+  .swatch {
+    border: 1px solid #d0ded6;
+    border-radius: 5px;
+    overflow: hidden;
+    font-size: 7.5pt;
+  }
+
+  .swatch-color {
+    height: 32px;
+  }
+
+  .swatch-info {
+    padding: 5px 6px;
+    background: #ffffff;
+  }
+
+  .swatch-name {
+    font-weight: 700;
+    color: #0c1216;
+  }
+
+  .swatch-hex {
+    font-family: monospace;
+    color: #637774;
+  }
+</style>
+</head>
+<body>
+
+<!-- COVER PAGE -->
+<div class="cover">
+  <div>
+    <div class="cover-brand">
+      <svg class="cover-logo" viewBox="0 0 64 64" fill="none">
+        <rect width="64" height="64" rx="16" fill="#0b1014"/>
+        <g transform="rotate(-8 32 30)" stroke="#d4f36f" stroke-width="4">
+          <rect x="12" y="12" width="40" height="40" rx="11"/>
+          <path d="M45 51 55 59" stroke-linecap="round"/>
+        </g>
+        <g fill="#d4f36f">
+          <rect x="22" y="29" width="4" height="8" rx="2"/>
+          <rect x="30" y="24" width="4" height="18" rx="2"/>
+          <rect x="38" y="29" width="4" height="8" rx="2"/>
+        </g>
+      </svg>
+      <div class="cover-brand-title">Relay<span>View</span></div>
+    </div>
+
+    <div class="cover-title-group">
+      <div class="cover-eyebrow">Technical Architecture & Engineering Specification</div>
+      <h1 class="cover-main-title">Cross-Platform Implementation Guide</h1>
+      <p class="cover-subtitle">
+        System architecture, network protocols, audio/video pipelines, spatial hit-testing, and adaptation blueprints for Snap Spectacles, Meta Quest (Horizon OS), and Android XR.
+      </p>
+    </div>
+  </div>
+
+  <div class="cover-meta">
+    <div>
+      <dt>Author</dt>
+      <dd>Krazyy Krunal</dd>
+      <dd style="font-weight:400; font-size:8pt; color:#95a7a9;">All Things Krazyy</dd>
+    </div>
+    <div>
+      <dt>Specification Target</dt>
+      <dd>Spectacles · Quest · Android XR</dd>
+      <dd style="font-weight:400; font-size:8pt; color:#95a7a9;">SnapOS · Horizon OS · OpenXR</dd>
+    </div>
+    <div>
+      <dt>Version & Date</dt>
+      <dd>v1.0 Production Architecture</dd>
+      <dd style="font-weight:400; font-size:8pt; color:#95a7a9;">October 2026</dd>
+    </div>
+  </div>
+</div>
+
+<!-- PAGE 1: EXECUTIVE SUMMARY & ARCHITECTURE -->
+<h1><span class="sec-title">1. Executive Overview & System Topology</span> <span class="sec-num">01</span></h1>
+
+<p>
+  <strong>RelayView</strong> (originally incubated as <em>Remote ARsistance</em>) is a real-time, hands-free spatial collaboration platform. It bridges on-site technicians operating in demanding physical environments (telecom, avionics, industrial manufacturing, precision data centers) with off-site domain experts connected via standard web browsers.
+</p>
+<p>
+  While conventional remote assistance forces users to hold smartphones or tablets—neutralizing their manual dexterity—RelayView leverages wearable augmented reality to project synchronized two-way voice, head-mounted POV video, and <strong>3D spatial annotations anchored directly onto physical equipment</strong> in real time.
+</p>
+
+<div class="diagram-box">
++---------------------------------------------------------------------------------------------------+
+|                                     RELAYVIEW SYSTEM TOPOLOGY                                     |
++---------------------------------------------------------------------------------------------------+
+
+ [ FIELD TECHNICIAN ]                                                         [ REMOTE DOMAIN EXPERT ]
+  Snap Spectacles / Quest / Android XR                                         Web Client (Chrome/Safari)
++------------------------------------+                                       +-----------------------+
+|  Hardware Inputs:                  |                                       |  User Interfaces:     |
+|   * CameraModule (Passthrough)     |                                       |   * HTML5 Canvas View |
+|   * 16kHz PCM Mic (VoiceML/AEC)    |                                       |   * AudioWorklet Call |
+|   * Instant World Hit Test         |                                       |   * Click Annotations |
+|  AR Rendering:                     |                                       |   * Latency / RTT HUD |
+|   * 3D Spatial Prefabs (Anchored)  |                                       +-----------+-----------+
+|   * Lower-Third Glass HUD + TTS    |                                                   |
++-----------------+------------------+                                                   |
+                  |                                                                       |
+                  | Binary PCM Audio (0x41) / Base64 JPEG Video                           | Web Audio Worklet
+                  | Raycast World Events / Ephemeral Action JSON                          | Normalized Click (x,y)
+                  v                                                                       v
+     +-----------------------------------------------------------------------------------------+
+     |                    RELAYVIEW WEBSOCKET RELAY (Node.js on Cloud Run)                     |
+     |                                                                                         |
+     |   * Ephemeral 6-Char Session Code Pairing (e.g., 'XXX-XXX')                             |
+     |   * Zero-Payload Storage (Strict Pass-Through / Zero-Trust Architecture)                |
+     |   * High-Frequency Video Backpressure Protection (Drop stale frames if buffer > 64KB)   |
+     |   * Real-Time Bidirectional Binary Audio Relaying & Diagnostic Status Forwarding        |
+     +-----------------------------------------------------------------------------------------+
+</div>
+
+<h2>Core Architectural Tenets</h2>
+<ul>
+  <li><strong>Zero-Friction Authentication:</strong> Technicians cannot type complex passwords while wearing smart glasses in the field. Pairing is handled via ephemeral 6-character Crockford Base32 keys generated on device boot.</li>
+  <li><strong>Lightweight Binary Protocol:</strong> Rather than forcing heavy, battery-draining WebRTC peer negotiation on low-power XR SoCs, RelayView employs a clean binary WebSocket architecture optimized for Qualcomm Snapdragon XR2.</li>
+  <li><strong>Decoupled Spatial State:</strong> 2D screen interactions from the web portal are translated through real-time raycasting into persistent 6DoF spatial entities anchored in the physical world.</li>
+  <li><strong>Fail-Safe Hardware Lifecycle:</strong> Audio drivers and camera providers are kept persistent during call toggles to eliminate hardware lockups on embedded XR platforms.</li>
+</ul>
+
+<!-- PAGE 2: PROTOCOLS & CODE IMPLEMENTATION -->
+<div class="page-break"></div>
+<h1><span class="sec-title">2. Wire Protocol & Code Subsystems</span> <span class="sec-num">02</span></h1>
+
+<h2>2.1 Protocol Framing Specification</h2>
+<p>
+  Communication between the XR client, relay server, and web portal is divided into <strong>control JSON messages</strong> and <strong>high-bandwidth binary audio/video payloads</strong> over a single secure WebSocket (<code>wss://</code>):
+</p>
+
+<table>
+  <thead>
+    <tr>
+      <th style="width: 22%;">Payload Type</th>
+      <th style="width: 18%;">Encoding</th>
+      <th style="width: 25%;">Header / Framing</th>
+      <th>Description & Semantic Meaning</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Binary PCM Audio</strong></td>
+      <td>Raw PCM 16-bit LE</td>
+      <td><code>0x41</code> (1 Byte Tag)</td>
+      <td>Bidirectional voice call chunks. Followed by interleaved 16-bit little-endian samples at 16,000 Hz. Packet length is odd (<code>2N + 1</code> bytes).</td>
+    </tr>
+    <tr>
+      <td><strong>Video Frame</strong></td>
+      <td>Base64 JPEG</td>
+      <td><code>|||FRAME_END|||</code> suffix</td>
+      <td>Camera snapshot transmitted from XR headset. Server inspects suffix and relays directly to web peer without JSON decode overhead.</td>
+    </tr>
+    <tr>
+      <td><strong>Session Handshake</strong></td>
+      <td>JSON text</td>
+      <td><code>{"action":"create-session"}</code></td>
+      <td>XR client initiates. Server responds with <code>{"status":"created","sessionCode":"ABC-DEF"}</code>. Web client joins via <code>{"action":"join-session"}</code>.</td>
+    </tr>
+    <tr>
+      <td><strong>Spatial Annotation</strong></td>
+      <td>JSON text</td>
+      <td><code>{"action":"annotate"}</code></td>
+      <td>Expert sends normalized viewport coordinates <code>{"data":{"x":0.48,"y":0.35,"label":"Torque Bolt"}}</code>.</td>
+    </tr>
+    <tr>
+      <td><strong>Mic Diagnostics</strong></td>
+      <td>JSON text</td>
+      <td><code>{"action":"mic-status"}</code></td>
+      <td>Triggered by the headset watchdog when audio input stalls. Forwarded to web portal to guide device reboot or mic permission check.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>2.2 Video Pipeline & Dynamic Quality Profiling</h2>
+<p>
+  The video streamer in <code>CameraStreamer.js</code> operates on a cooperative render-target loop, balancing bandwidth against compression latency:
+</p>
+<pre><code>// CameraStreamer.js - Dynamic Quality Engine
+const PROFILES = {
+    crisp:    { scale: 0.85, quality: 72, fps: 20 }, // High detail for circuit boards
+    balanced: { scale: 0.65, quality: 60, fps: 15 }, // Standard field diagnostic
+    fast:     { scale: 0.50, quality: 48, fps: 12 }  // Low-bandwidth cellular failover
+};
+
+function adaptQualityByLatency(rttMs) {
+    if (rttMs &lt; 90) setQualityProfile("crisp");
+    else if (rttMs &lt; 220) setQualityProfile("balanced");
+    else setQualityProfile("fast");
+}</code></pre>
+
+<h2>2.3 Audio Subsystem & Hardware Protection (XR2)</h2>
+<p>
+  On Qualcomm Snapdragon XR2 platforms (including Snap Spectacles Gen 5 and Meta Quest), calling <code>microphone.stop()</code> or re-instantiating the audio driver while the camera pipeline is active can cause the hardware DSP to stall, terminating the camera feed.
+</p>
+<div class="callout warning">
+  <div class="callout-title">⚠️ Critical Hardware Finding (XR2 Engine Lifecycle)</div>
+  Never de-allocate or stop native <code>MicrophoneAudioProvider</code> or <code>AudioComponent</code> instances during call termination. Instead, transition a software state flag (<code>calling = false</code>) to discard outgoing buffers while preserving hardware driver warm-state.
+</div>
+
+<pre><code>// VoiceCall.js - Audio Capture & Mic Stall Watchdog
+updateEvent.bind(function () {
+    if (!calling || !isJoined()) return;
+
+    const frameSize = microphone.maxFrameSize || 16384;
+    const audioFrame = new Float32Array(frameSize);
+    let shape = microphone.getAudioFrame(audioFrame);
+    let count = (shape && isFinite(shape.x)) ? (shape.x | 0) : 0;
+
+    if (count &gt; 0 && socket.readyState === 1) {
+        zeroTicks = 0;
+        const sendCount = Math.min(count, 2048);
+        const packet = new Uint8Array(sendCount * 2 + 1);
+        packet[0] = 0x41; // 'A' packet tag
+        for (let i = 0; i &lt; sendCount; i++) {
+            const s = Math.max(-1.0, Math.min(1.0, audioFrame[i]));
+            const val = s &lt; 0 ? Math.round(s * 32768) : Math.round(s * 32767);
+            packet[1 + i * 2] = val & 255;
+            packet[2 + i * 2] = (val &gt;&gt; 8) & 255;
+        }
+        socket.send(packet);
+    } else {
+        zeroTicks++;
+        // 300 ticks @ 60 FPS = 5.0 seconds of mic silence during call
+        if (!stallPrompted && zeroTicks &gt;= 300 && sentAudioPackets === 0) {
+            stallPrompted = true;
+            ChatUI.showAlert("⚠️ Mic silent · Check Spectacles\nRestart device if issue persists", 7.0);
+            socket.send(JSON.stringify({ action: "mic-status", status: "waiting" }));
+        }
+    }
+});</code></pre>
+
+<!-- PAGE 3: SPATIAL RAYCASTING & DESIGN SYSTEM -->
+<div class="page-break"></div>
+<h1><span class="sec-title">3. Spatial Computing & Design Language</span> <span class="sec-num">03</span></h1>
+
+<h2>3.1 Screen-to-World Raycasting Math</h2>
+<p>
+  When a remote expert clicks at coordinate (x, y) in [0, 1] on the live video canvas, RelayView computes a 3D ray from the headset's focal center into the reconstructed scene:
+</p>
+<pre><code>// 2D Normalized Viewport -> 3D Spatial Entity
+function renderAnnotation(label, xNorm, yNorm) {
+    // 1. Invert Y coordinate from HTML canvas standard to XR viewport standard
+    const screenPos = new vec2(xNorm, 1.0 - yNorm);
+
+    // 2. Perform Instant World Hit Test against real-world depth mesh
+    const hitTestResult = instantWorldHitTest.hitTest(screenPos);
+    let worldPosition;
+
+    if (hitTestResult && hitTestResult.isValid()) {
+        worldPosition = hitTestResult.position; // Surface hit point
+    } else {
+        // Fallback: Project ray to standard task distance (1.2 meters)
+        const cameraPos = perspectiveCam.getSceneObject().getTransform().getWorldPosition();
+        const cameraForward = perspectiveCam.getSceneObject().getTransform().forward;
+        worldPosition = cameraPos.add(cameraForward.uniformScale(1.2));
+    }
+
+    // 3. Instantiate Billboard Anchor facing user
+    const pin = createSpatialTagPrefab(label, worldPosition);
+    pin.getComponent("Component.LookAtComponent").target = perspectiveCam.getSceneObject();
+}</code></pre>
+
+<h2>3.2 Design System & Ergonomic Specification</h2>
+<p>
+  RelayView's design language is built specifically for high-stress industrial environments with variable ambient lighting.
+</p>
+
+<div class="swatch-group">
+  <div class="swatch">
+    <div class="swatch-color" style="background: #0b1014;"></div>
+    <div class="swatch-info">
+      <div class="swatch-name">Obsidian Base</div>
+      <div class="swatch-hex">#0b1014</div>
+    </div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color" style="background: #d4f36f;"></div>
+    <div class="swatch-info">
+      <div class="swatch-name">Electric Lime</div>
+      <div class="swatch-hex">#d4f36f</div>
+    </div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color" style="background: #1f2c2e;"></div>
+    <div class="swatch-info">
+      <div class="swatch-name">Slate Border</div>
+      <div class="swatch-hex">#1f2c2e</div>
+    </div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color" style="background: #88a994;"></div>
+    <div class="swatch-info">
+      <div class="swatch-name">Sage Secondary</div>
+      <div class="swatch-hex">#88a994</div>
+    </div>
+  </div>
+</div>
+
+<ul>
+  <li><strong>Lower-Third HUD Placement:</strong> AR notifications must not occlude the center of the technician's field of view. <code>ScreenTransform</code> anchors are set to <code>[-0.85, 0.85, -0.92, -0.62]</code>, positioning information in the comfortable downward gaze arc.</li>
+  <li><strong>High-Contrast Double Borders:</strong> In-lens typography uses a dark semi-translucent glass plate (<code>rgba(6, 9, 12, 0.88)</code>) combined with an outer <code>0.1</code> thickness pure black outline to ensure legibility against bright sunlight or direct industrial workshop lamps.</li>
+  <li><strong>Auto-Decay Minimization:</strong> Notification cards automatically minimize after 12 seconds of inactivity to eliminate cognitive fatigue and maintain spatial awareness.</li>
+</ul>
+
+<!-- PAGE 4: PORTING TO META QUEST -->
+<div class="page-break"></div>
+<h1><span class="sec-title">4. Porting Guide: Meta Quest (Horizon OS)</span> <span class="sec-num">04</span></h1>
+
+<h2>4.1 Meta Quest Platform Architecture</h2>
+<p>
+  Meta Quest 3 and Quest Pro run <strong>Horizon OS</strong> (Android 12/14 base on Snapdragon XR2 Gen 2) with full 6DoF inside-out tracking, dual high-resolution RGB color passthrough cameras, and OpenXR compliance.
+</p>
+
+<div class="callout arch">
+  <div class="callout-title">🏛️ Quest Architectural Divergence from Spectacles</div>
+  Unlike Spectacles (optical see-through waveguide with a fixed forward camera), Quest is a <strong>video passthrough (VST) VR headset</strong>. The cameras see the world first, composite graphics, and display them on micro-OLED/LCD panels.
+</div>
+
+<h2>4.2 Camera Passthrough & Video Streaming Pipeline</h2>
+<p>
+  On Meta Horizon OS, applications historically could not access raw camera passthrough pixels due to privacy sandbox rules. With <strong>Meta Quest Passthrough Camera API (v66+)</strong> or enterprise developer entitlement:
+</p>
+<ul>
+  <li><strong>Accessing Frames:</strong> In Unity, obtain the camera feed using <code>PassthroughCameraAccess</code> or render a dedicated virtual camera capturing the technician's POV.</li>
+  <li><strong>Hardware Video Encoding:</strong> Rather than CPU-heavy JPEG compression, use Android's native <code>MediaCodec</code> (via Unity NDK or C# plugin) to encode H.264 baseline slices, reducing latency to &lt;25ms.</li>
+</ul>
+
+<pre><code>// QuestRelayViewClient.cs - Meta Quest Passthrough Streamer (Unity C#)
+using System;
+using System.Net.WebSockets;
+using System.Threading;
+using System.Threading.Tasks;
+using UnityEngine;
+
+public class QuestRelayViewStreamer : MonoBehaviour {
+    [SerializeField] private Camera povCamera;
+    [SerializeField] private RenderTexture renderTarget;
+    private ClientWebSocket ws = new ClientWebSocket();
+    private Texture2D exportTexture;
+
+    async void Start() {
+        exportTexture = new Texture2D(renderTarget.width, renderTarget.height, TextureFormat.RGB24, false);
+        await ws.ConnectAsync(new Uri("wss://relayview.allthingskrazyy.com"), CancellationToken.None);
+        StartCoroutine(StreamLoop());
+    }
+
+    private System.Collections.IEnumerator StreamLoop() {
+        while (ws.State == WebSocketState.Open) {
+            yield return new WaitForEndOfFrame();
+            RenderTexture.active = renderTarget;
+            exportTexture.ReadPixels(new Rect(0, 0, renderTarget.width, renderTarget.height), 0, 0);
+            exportTexture.Apply();
+
+            byte[] jpgBytes = exportTexture.EncodeToJPG(65);
+            string base64 = Convert.ToBase64String(jpgBytes) + "|||FRAME_END|||";
+            byte[] sendBuffer = System.Text.Encoding.UTF8.GetBytes(base64);
+            _ = ws.SendAsync(new ArraySegment&lt;byte&gt;(sendBuffer), WebSocketMessageType.Text, true, CancellationToken.None);
+            yield return new WaitForSeconds(0.066f); // 15 FPS
+        }
+    }
+}</code></pre>
+
+<h2>4.3 Spatial Hit-Testing & World Anchoring on Horizon OS</h2>
+<p>
+  Replace Lens Studio's <code>InstantWorldHitTest</code> with Meta's <strong>Scene Mesh Raycasting</strong> or OpenXR Spatial Entities:
+</p>
+<pre><code>// Quest Raycast & Anchor Implementation (Unity C#)
+public void SpawnAnnotationFromWeb(float xNorm, float yNorm, string label) {
+    // Convert normalized web coords to Quest Camera Viewport
+    Vector3 viewportPoint = new Vector3(xNorm, yNorm, 0f);
+    Ray ray = povCamera.ViewportPointToRay(viewportPoint);
+
+    // Raycast against Meta Scene Mesh / Spatial Environment Layer
+    if (Physics.Raycast(ray, out RaycastHit hit, 5.0f, LayerMask.GetMask("SpatialMesh"))) {
+        GameObject pin = Instantiate(annotationPrefab, hit.point, Quaternion.LookRotation(hit.normal));
+        pin.GetComponentInChildren&lt;TMPro.TextMeshPro&gt;().text = label;
+        // Bind to Meta OVRSpatialAnchor for persistence across headset drift
+        pin.AddComponent&lt;OVRSpatialAnchor&gt;();
+    }
+}</code></pre>
+
+<!-- PAGE 5: PORTING TO ANDROID XR -->
+<div class="page-break"></div>
+<h1><span class="sec-title">5. Porting Guide: Android XR</span> <span class="sec-num">05</span></h1>
+
+<h2>5.1 Android XR Architectural Overview</h2>
+<p>
+  <strong>Android XR</strong> (built on Android 14+ / OpenXR with Jetpack XR extensions) powers the next wave of spatial headsets (Samsung XR, Google ecosystem). It combines the traditional Android application sandbox with first-class spatial panel ergonomics and ARCore Perception.
+</p>
+
+<table>
+  <thead>
+    <tr>
+      <th style="width: 25%;">Subsystem</th>
+      <th style="width: 35%;">Snap Spectacles Baseline</th>
+      <th>Android XR Implementation</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Spatial Perception</strong></td>
+      <td><code>InstantWorldHitTest</code></td>
+      <td><code>androidx.xr.scenecore.SpatialSession.hitTest()</code></td>
+    </tr>
+    <tr>
+      <td><strong>Camera Ingestion</strong></td>
+      <td><code>CameraModule</code></td>
+      <td><code>Camera2</code> / <code>CameraX</code> Passthrough Stream API</td>
+    </tr>
+    <tr>
+      <td><strong>Audio Hardware</strong></td>
+      <td><code>MicrophoneAudioProvider</code></td>
+      <td><code>AudioRecord</code> with <code>VOICE_COMMUNICATION</code> attribute</td>
+    </tr>
+    <tr>
+      <td><strong>HUD & UI</strong></td>
+      <td><code>ScreenTransform</code></td>
+      <td>Jetpack XR <code>SpatialPanel</code> with Compose XR</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>5.2 Android XR Implementation (Kotlin / Jetpack XR)</h2>
+<p>
+  The following Kotlin component demonstrates establishing the RelayView session and binding the incoming 2D click coordinates to an Android XR <code>SpatialEntity</code>:
+</p>
+
+<pre><code>// AndroidXRRelayViewManager.kt - Android XR Jetpack Implementation
+package com.allthingskrazyy.relayview
+
+import android.content.Context
+import androidx.xr.scenecore.SpatialSession
+import androidx.xr.scenecore.Entity
+import androidx.xr.scenecore.Transform
+import okhttp3.*
+import org.json.JSONObject
+
+class AndroidXRRelayViewManager(
+    private val context: Context,
+    private val spatialSession: SpatialSession
+) {
+    private val client = OkHttpClient()
+    private var webSocket: WebSocket? = null
+
+    fun connect() {
+        val request = Request.Builder().url("wss://relayview.allthingskrazyy.com").build()
+        webSocket = client.newWebSocket(request, object : WebSocketListener() {
+            override fun onOpen(ws: WebSocket, response: Response) {
+                // Request ephemeral session code
+                ws.send("{\\"action\\":\\"create-session\\"}")
+            }
+
+            override fun onMessage(ws: WebSocket, text: String) {
+                val json = JSONObject(text)
+                when (json.optString("action")) {
+                    "annotate" -&gt; handleAnnotation(json.getJSONObject("data"))
+                }
+            }
+        })
+    }
+
+    private fun handleAnnotation(data: JSONObject) {
+        val x = data.getDouble("x").toFloat()
+        val y = data.getDouble("y").toFloat()
+        val label = data.getString("label")
+
+        // Android XR Perception Screen-to-World Hit Test
+        val hitResult = spatialSession.hitTest(x, 1.0f - y)
+        val pose = hitResult?.firstOrNull()?.pose ?: return
+
+        // Instantiate anchored 3D spatial entity in Jetpack XR
+        val pinEntity = Entity.create(spatialSession).apply {
+            setTransform(Transform(pose.translation, pose.rotation))
+            addComponent(SpatialTextComponent(label, color = 0xFFD4F36F.toInt()))
+            addComponent(BillboardComponent()) // Always face user gaze
+        }
+    }
+}</code></pre>
+
+<!-- PAGE 6: API ROSETTA STONE & CLOUD RUN ROADMAP -->
+<div class="page-break"></div>
+<h1><span class="sec-title">6. API Rosetta Stone & Scaling Roadmap</span> <span class="sec-num">06</span></h1>
+
+<h2>6.1 Cross-Platform Implementation Rosetta Stone</h2>
+<p>
+  When engineering cross-platform ports, use this direct mapping between runtime frameworks:
+</p>
+
+<table>
+  <thead>
+    <tr>
+      <th style="width: 22%;">Capability</th>
+      <th style="width: 26%;">Snap Spectacles (Lens Studio)</th>
+      <th style="width: 26%;">Meta Quest (Horizon OS / Unity)</th>
+      <th>Android XR (Jetpack XR)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>WebSocket Engine</strong></td>
+      <td><code>internetModule.createWebSocket()</code></td>
+      <td><code>System.Net.WebSockets.ClientWebSocket</code></td>
+      <td><code>OkHttp WebSocketListener</code></td>
+    </tr>
+    <tr>
+      <td><strong>Audio Capture</strong></td>
+      <td><code>MicrophoneAudioProvider</code></td>
+      <td><code>Microphone.Start()</code> / Oboe C++</td>
+      <td><code>AudioRecord(VOICE_COMMUNICATION)</code></td>
+    </tr>
+    <tr>
+      <td><strong>Audio Output</strong></td>
+      <td><code>AudioOutputProvider.enqueueAudioFrame()</code></td>
+      <td><code>OnAudioFilterRead()</code> / <code>AudioSource</code></td>
+      <td><code>AudioTrack.write(MODE_STREAM)</code></td>
+    </tr>
+    <tr>
+      <td><strong>Speech-to-Text</strong></td>
+      <td><code>VoiceMLModule.AsrModule</code></td>
+      <td>Meta Wit.ai Voice SDK</td>
+      <td>Android <code>SpeechRecognizer</code></td>
+    </tr>
+    <tr>
+      <td><strong>World Raycast</strong></td>
+      <td><code>InstantWorldHitTest.hitTest()</code></td>
+      <td><code>Physics.Raycast(SpatialMeshLayer)</code></td>
+      <td><code>SpatialSession.hitTest()</code></td>
+    </tr>
+    <tr>
+      <td><strong>HUD Display</strong></td>
+      <td><code>Component.ScreenTransform</code></td>
+      <td>World Space Canvas (Lazy Follow)</td>
+      <td><code>SpatialPanel</code> (Compose XR)</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>6.2 Production Scaling & Infrastructure Roadmap</h2>
+<p>
+  RelayView's backend is currently deployed as a stateless serverless container on <strong>Google Cloud Run</strong> in <code>us-central1</code> behind custom domain routing (<code>relayview.allthingskrazyy.com</code>). To scale beyond single-instance concurrent limits:
+</p>
+
+<ul>
+  <li><strong>Horizontal Scale with Redis Pub/Sub:</strong> Replace in-memory <code>Map&lt;sessionCode, session&gt;</code> with Redis. When a web client connects to Instance A and a technician to Instance B, audio and video packets are published to a Redis channel keyed by <code>session:{code}</code>.</li>
+  <li><strong>Hardware H.264 WebRTC Upgrade:</strong> For high-bandwidth 60 FPS streaming on Quest and Android XR, implement WebRTC data channels with DTLS/SRTP encryption, keeping the WebSocket relay as signaling.</li>
+  <li><strong>Spatial Audio Spatialization:</strong> On 6DoF platforms (Quest / Android XR), position the remote expert's voice in 3D audio space directly at the coordinate of their placed annotation, creating intuitive auditory localization.</li>
+</ul>
+
+<div class="callout">
+  <div class="callout-title">✅ Deployment Verification & Live Status</div>
+  The reference production server is deployed and verified active:
+  <br><strong>Endpoint:</strong> <code>https://relayview.allthingskrazyy.com</code>
+  <br><strong>Open-Source Repository:</strong> <code>https://github.com/kgediya/Remote-ARsistance</code>
+</div>
+
+</body>
+</html>

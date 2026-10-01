@@ -13,9 +13,10 @@ const END = '|||FRAME_END|||';
 const DEBUG_LOGS = process.env.DEBUG_LOGS === '1';
 
 function createServer() {
+  const SERVER_REGION = (process.env.RELAYVIEW_REGION || '').trim().toUpperCase();
   const app = express();
   app.disable('x-powered-by');
-  app.get(['/healthz', '/api/health'], (_req, res) => res.json({ status: 'ok' }));
+  app.get(['/healthz', '/api/health'], (_req, res) => res.json({ status: 'ok', region: SERVER_REGION || 'US' }));
   app.use(express.static(path.join(__dirname, 'public'), { dotfiles: 'deny' }));
   const server = http.createServer(app);
   const wss = new WebSocket.Server({ server, maxPayload: MAX_FRAME + 32, perMessageDeflate: false });
@@ -32,9 +33,34 @@ function createServer() {
   function code() {
     let value;
     do {
-      value = Array.from({ length: 6 }, () => ALPHABET[crypto.randomInt(ALPHABET.length)]).join('');
+      const core = Array.from({ length: 6 }, () => ALPHABET[crypto.randomInt(ALPHABET.length)]).join('');
+      value = SERVER_REGION ? `${SERVER_REGION}-${core}` : core;
     } while (sessions.has(value));
     return value;
+  }
+  function resolveSession(raw) {
+    if (typeof raw !== 'string') return null;
+    const clean = raw.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (!clean) return null;
+
+    const full = raw.trim().toUpperCase();
+    if (sessions.has(full)) return { session: sessions.get(full), code: full };
+    if (sessions.has(clean)) return { session: sessions.get(clean), code: clean };
+
+    if (/^[A-Z]{2}[A-HJ-NP-Z2-9]{6}$/.test(clean)) {
+      const formatted = clean.slice(0, 2) + '-' + clean.slice(2);
+      if (sessions.has(formatted)) return { session: sessions.get(formatted), code: formatted };
+      const stripped = clean.slice(2);
+      if (sessions.has(stripped)) return { session: sessions.get(stripped), code: stripped };
+    }
+
+    if (/^[A-HJ-NP-Z2-9]{6}$/.test(clean)) {
+      if (SERVER_REGION) {
+        const prefixed = `${SERVER_REGION}-${clean}`;
+        if (sessions.has(prefixed)) return { session: sessions.get(prefixed), code: prefixed };
+      }
+    }
+    return null;
   }
   function paired(session) {
     return session && session.specs?.readyState === WebSocket.OPEN && session.web?.readyState === WebSocket.OPEN;
@@ -116,8 +142,8 @@ function createServer() {
         sessions.set(sessionCode, { specs: ws, web: null, lastActivity: Date.now(), debugId: ws.debugId });
         ws.role = 'specs';
         ws.sessionCode = sessionCode;
-        send(ws, { status: 'created', sessionCode });
-        debug('session-created', { session: ws.debugId });
+        send(ws, { status: 'created', sessionCode, region: SERVER_REGION || 'US' });
+        debug('session-created', { session: ws.debugId, sessionCode, region: SERVER_REGION });
         return;
       }
       if (msg.action === 'join-session' && !ws.role) {
@@ -127,19 +153,20 @@ function createServer() {
         attempt.count++;
         attempts.set(address, attempt);
         if (attempt.count > 20) { send(ws, { error: 'Too many attempts. Try again shortly.' }); return; }
-        const sessionCode = typeof msg.sessionCode === 'string' ? msg.sessionCode.trim().toUpperCase().replace('-', '') : '';
-        if (msg.role !== 'web' || !/^[A-HJ-NP-Z2-9]{6}$/.test(sessionCode)) {
-          send(ws, { error: 'Invalid session code' }); return;
+
+        const match = resolveSession(msg.sessionCode);
+        if (msg.role !== 'web' || !match || !match.session || !match.session.specs || match.session.web) {
+          send(ws, { error: (!match || msg.role !== 'web') ? 'Invalid session code' : 'Session unavailable' });
+          return;
         }
-        const session = sessions.get(sessionCode);
-        if (!session || !session.specs || session.web) { send(ws, { error: 'Session unavailable' }); return; }
+        const session = match.session;
         session.web = ws;
         session.lastActivity = Date.now();
         ws.role = 'web';
-        ws.sessionCode = sessionCode;
-        send(ws, { status: 'joined', sessionCode });
-        send(session.specs, { status: 'joined', sessionCode });
-        debug('session-joined', { session: session.debugId, peer: ws.debugId });
+        ws.sessionCode = match.code;
+        send(ws, { status: 'joined', sessionCode: match.code, region: SERVER_REGION || 'US' });
+        send(session.specs, { status: 'joined', sessionCode: match.code });
+        debug('session-joined', { session: session.debugId, peer: ws.debugId, sessionCode: match.code, region: SERVER_REGION });
         return;
       }
       const session = sessions.get(ws.sessionCode);

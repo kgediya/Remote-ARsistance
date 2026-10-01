@@ -14,7 +14,34 @@
   let annotationPoint = null;
   let modalOpener = null;
   let activeCode = '';
-  const displayCode = code => code.slice(0, 3) + '-' + code.slice(3);
+  let currentRegion = null;
+
+  const REGION_GATEWAYS = {
+    'IN': {
+      code: 'IN',
+      name: 'Mumbai, India (asia-south1)',
+      short: 'Mumbai',
+      host: 'remote-arsistance-597953322753.asia-south1.run.app'
+    },
+    'US': {
+      code: 'US',
+      name: 'Iowa, USA (us-central1)',
+      short: 'US Central',
+      host: 'remote-arsistance-597953322753.us-central1.run.app'
+    }
+  };
+
+  const displayCode = code => {
+    if (!code) return '';
+    const clean = code.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (/^[A-Z]{2}[A-HJ-NP-Z2-9]{6}$/.test(clean)) {
+      return clean.slice(0, 2) + '-' + clean.slice(2, 5) + '-' + clean.slice(5);
+    }
+    if (clean.length > 3) {
+      return clean.slice(0, 3) + '-' + clean.slice(3);
+    }
+    return clean;
+  };
 
   function showToast(message, tone = 'info', duration = 6000) {
     clearTimeout(toastTimer);
@@ -229,8 +256,36 @@
   }
 
   $('sessionCode').addEventListener('input', event => {
-    const code = event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
-    event.target.value = code.length > 3 ? displayCode(code) : code;
+    let raw = event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    let formatted = raw;
+    let detectedRegion = null;
+
+    if (raw.startsWith('IN') || raw.startsWith('US')) {
+      raw = raw.slice(0, 8);
+      if (raw.startsWith('IN')) detectedRegion = REGION_GATEWAYS.IN;
+      if (raw.startsWith('US')) detectedRegion = REGION_GATEWAYS.US;
+      if (raw.length > 5) {
+        formatted = raw.slice(0, 2) + '-' + raw.slice(2, 5) + '-' + raw.slice(5);
+      } else if (raw.length > 2) {
+        formatted = raw.slice(0, 2) + '-' + raw.slice(2);
+      }
+    } else {
+      raw = raw.slice(0, 6);
+      if (raw.length > 3) {
+        formatted = raw.slice(0, 3) + '-' + raw.slice(3);
+      }
+    }
+    event.target.value = formatted;
+
+    const hint = $('regionHint');
+    if (hint) {
+      if (detectedRegion) {
+        hint.hidden = false;
+        $('regionHintText').textContent = '⚡ Low-latency route: ' + detectedRegion.name;
+      } else {
+        hint.hidden = true;
+      }
+    }
   });
 
   function connectSession(code, isResume = false) {
@@ -238,12 +293,28 @@
       try { socket.close(); } catch { /* ignore */ }
     }
     connected = false;
+
+    const clean = code.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    let targetHost = location.host;
+    let selectedRegion = null;
+
+    if (clean.startsWith('IN') && clean.length > 2) {
+      targetHost = REGION_GATEWAYS.IN.host;
+      selectedRegion = REGION_GATEWAYS.IN;
+    } else if (clean.startsWith('US') && clean.length > 2) {
+      targetHost = REGION_GATEWAYS.US.host;
+      selectedRegion = REGION_GATEWAYS.US;
+    }
+    currentRegion = selectedRegion;
+
     if (!isResume) {
       $('joinButton').disabled = true;
       $('joinButton').querySelector('span').textContent = 'Connecting…';
-      showToast('Connecting to technician…', 'info', 0);
+      showToast(selectedRegion ? `Connecting via ${selectedRegion.name}…` : 'Connecting to technician…', 'info', 0);
     }
-    const ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host);
+
+    const wsProto = (location.protocol === 'https:' || targetHost.includes('.run.app')) ? 'wss://' : 'ws://';
+    const ws = new WebSocket(wsProto + targetHost);
     ws.binaryType = 'arraybuffer';
     socket = ws;
     call = new RemoteCall(ws, setCallState, () => {
@@ -282,6 +353,9 @@
         } else {
           clearView(false);
         }
+        if (msg.region && REGION_GATEWAYS[msg.region]) {
+          currentRegion = REGION_GATEWAYS[msg.region];
+        }
         setCallState();
         showToast(isResume ? 'Reconnected to technician!' : 'Connected. Waiting for technician’s camera feed.', 'success');
       } else if (msg.status === 'peer-left') {
@@ -308,7 +382,8 @@
         }
       } else if (msg.action === 'pong' && Number.isFinite(msg.sentAt)) {
         const rtt = Math.max(0, Math.round(performance.now() - msg.sentAt));
-        $('latency').textContent = 'Network RTT ' + rtt + ' ms';
+        const regPrefix = currentRegion?.short ? `${currentRegion.short} · ` : '';
+        $('latency').textContent = `${regPrefix}Network RTT ${rtt} ms`;
         send({ action: 'network-stat', rtt });
       } else if (msg.action === 'call-state' && msg.state === 'stop') {
         call?.stop(false);
@@ -370,9 +445,9 @@
 
   $('joinForm').addEventListener('submit', event => {
     event.preventDefault();
-    const code = $('sessionCode').value.trim().toUpperCase().replace('-', '');
-    if (!/^[A-HJ-NP-Z2-9]{6}$/.test(code)) {
-      showToast('Enter the XXX-XXX code shown on the technician’s Spectacles.', 'error');
+    const code = $('sessionCode').value.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (!/^([A-Z]{2})?[A-HJ-NP-Z2-9]{6}$/.test(code)) {
+      showToast('Enter the session code (e.g. IN-XXX-XXX or XXX-XXX) shown on Spectacles.', 'error');
       $('sessionCode').focus();
       return;
     }

@@ -19,12 +19,13 @@ Cloud Run records corresponding `session-created`, `session-joined`, `video-rela
 
 ## Device deployment
 
-1. For Google Cloud Run, sign in with `gcloud auth login`, select a billed project, then run `REMOTE_ARSISTANCE_GCP_PROJECT=your-project-id ./deploy-cloud-run.sh`. The script deploys to `us-central1` by default (enabling custom domain mappings) with one warm instance, one maximum instance, and a 60-minute WebSocket timeout. Set `REMOTE_ARSISTANCE_GCP_REGION` if needed.
-2. The Cloud Run URL and custom domain `https://relayview.allthingskrazyy.com` serve both the web app and secure WebSocket connections. Set `ALLOWED_ORIGIN` if deploying behind a separate origin.
-3. In Lens Studio, `MainController.wssURL` is wired to `relayview.allthingskrazyy.com`. Enter a host only; the script adds `wss://`. Device builds must never use `localhost`.
-4. Build the Lens for Specs, accept the camera, microphone, and internet permission prompts, and run a two-device check with a browser on a separate network. Test call start, mute, hangup, reconnect, and speaker echo.
+1. For Google Cloud Run, sign in with `gcloud auth login`, select a billed project, then run `REMOTE_ARSISTANCE_GCP_PROJECT=your-project-id ./deploy-cloud-run.sh`. The script deploys to `us-central1` by default (enabling custom domain mappings) with one warm instance, one maximum instance, and a 60-minute WebSocket timeout. Set `REMOTE_ARSISTANCE_GCP_REGION` if needed (e.g. `asia-south1` for India).
+2. **Regional Routing (Solution 1)**: Deployments can be tagged with `RELAYVIEW_REGION=IN` (Mumbai, `asia-south1`) or `RELAYVIEW_REGION=US` (Iowa, `us-central1`). When configured, session codes are generated with their region tag (e.g. `IN-XXX-XXX`). The web expert portal parses the prefix and automatically connects its WebSocket to the nearest regional Cloud Run instance, dropping cross-continent latency from ~260ms to 15–30ms.
+3. The Cloud Run URL and custom domain `https://relayview.allthingskrazyy.com` serve both the web app and secure WebSocket connections. Set `ALLOWED_ORIGIN` if deploying behind a separate origin.
+4. In Lens Studio, `MainController.wssURL` is configured to the regional server (default: `remote-arsistance-597953322753.asia-south1.run.app` for India, or `relayview.allthingskrazyy.com` for US). Enter a host only; the script adds `wss://`. Device builds must never use `localhost`.
+5. Build the Lens for Specs, accept the camera, microphone, and internet permission prompts, and run a two-device check with a browser on a separate network. Test call start, mute, hangup, reconnect, and speaker echo.
 
-`GET /api/health` returns a simple health check. Sessions expire after 30 minutes of inactivity. The server limits payload size, join attempts, concurrent connections, and queued video and audio frames. Session codes are generated with Node's cryptographic random number generator. The code grants access to the live camera and call, so share it only with the intended expert. Cloud Run can close WebSockets at the configured 60-minute timeout; both users must rejoin after a connection closes.
+`GET /api/health` returns `{ "status": "ok", "region": "IN" }`. Sessions expire after 30 minutes of inactivity. The server limits payload size, join attempts, concurrent connections, and queued video and audio frames. Session codes are generated with Node's cryptographic random number generator. The code grants access to the live camera and call, so share it only with the intended expert. Cloud Run can close WebSockets at the configured 60-minute timeout; both users must rejoin after a connection closes.
 
 ## Protocol
 

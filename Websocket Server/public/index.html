@@ -51,8 +51,9 @@
         <p>Ask the technician for the session code displayed on their Spectacles.</p>
         <form id="joinForm" novalidate>
           <label for="sessionCode">SESSION CODE</label>
-          <input id="sessionCode" inputmode="text" maxlength="7" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="XXX-XXX" aria-describedby="codeHint" required>
-          <small id="codeHint">Six characters · displayed as XXX-XXX</small>
+          <input id="sessionCode" inputmode="text" maxlength="12" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="IN-XXX-XXX" aria-describedby="codeHint" required>
+          <small id="codeHint">Enter code from Spectacles (e.g. IN-XXX-XXX or XXX-XXX)</small>
+          <div id="regionHint" class="region-hint" hidden><span class="region-hint-dot"></span><span id="regionHintText">Routing to regional gateway</span></div>
           <button id="joinButton" class="button button-primary join-submit" type="submit"><span>Connect to technician</span><svg class="icon"><use href="#i-arrow"/></svg></button>
         </form>
         <div class="join-foot"><svg class="icon"><use href="#i-shield"/></svg> Only people with the session code can join.</div>

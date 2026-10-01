@@ -7,6 +7,18 @@ function initSession(script, socket, onJoined, onLeft) {
     const sessionText = script.sessionCodeText;
     const codeTransform = sessionText ? sessionText.getSceneObject().getComponent("Component.ScreenTransform") : null;
 
+    function formatSessionCode(code) {
+        if (!code) return "";
+        var clean = ("" + code).toUpperCase().replace(/[^A-Z0-9]/g, "");
+        if (clean.length === 8) {
+            return clean.slice(0, 2) + "-" + clean.slice(2, 5) + "-" + clean.slice(5);
+        }
+        if (clean.length === 6) {
+            return clean.slice(0, 3) + "-" + clean.slice(3);
+        }
+        return code;
+    }
+
     function applyCenterHud(code, subtext) {
         if (!sessionText) return;
         sessionText.size = 18;
@@ -29,7 +41,7 @@ function initSession(script, socket, onJoined, onLeft) {
             return;
         }
 
-        const formatted = code.slice(0, 3) + "-" + code.slice(3);
+        const formatted = formatSessionCode(code);
         const portalText = "HAVE EXPERT JOIN AT:\nrelayview.allthingskrazyy.com";
         const cleanSub = subtext ? subtext.replace(/^[⏳▶⚠●🌐\s]+/, "").trim() : "";
         sessionText.text = formatted + "\n\n" + portalText + (cleanSub ? "\n" + cleanSub : "");
@@ -58,7 +70,7 @@ function initSession(script, socket, onJoined, onLeft) {
             }
         } catch (_) {}
 
-        const formatted = code ? code.slice(0, 3) + "-" + code.slice(3) : "";
+        const formatted = formatSessionCode(code);
         sessionText.text = inCall ? ("● LIVE · 📞 IN CALL · " + formatted) : ("● LIVE · " + formatted);
     }
 

@@ -3162,11 +3162,11 @@
       TileZone: Rect
       TextureStretch: FitWidth
     Margins:
-      left: 16.000000
-      bottom: 10.000000
-      right: 16.000000
-      top: 10.000000
-    CornerRadius: 6.000000
+      left: 20.000000
+      bottom: 20.000000
+      right: 20.000000
+      top: 20.000000
+    CornerRadius: 20.000000
   AdvancedLayout: !<TextAdvancedLayout>
     ExtentsTarget: !<reference> 00000000-0000-0000-0000-000000000000
     LetterSpacing: 0.000000
@@ -3919,10 +3919,10 @@
       TileZone: Rect
       TextureStretch: FitWidth
     Margins:
-      left: 12.000000
-      bottom: 8.000000
-      right: 12.000000
-      top: 8.000000
+      left: 20.000000
+      bottom: 20.000000
+      right: 20.000000
+      top: 20.000000
     CornerRadius: 4.000000
   AdvancedLayout: !<TextAdvancedLayout>
     ExtentsTarget: !<reference> 00000000-0000-0000-0000-000000000000
@@ -4064,7 +4064,7 @@
     "":
       preview: !<reference.Image> 6f6f364e-474a-4356-aa64-088a7bdd2607
       internetModule: !<reference.InternetModule> aae8fcd7-3991-425a-8025-47c60fcb0db8
-      wssURL: relayview.allthingskrazyy.com
+      wssURL: remote-arsistance-597953322753.asia-south1.run.app
       perspectiveCam: !<reference.Camera> 00000000-0000-0065-0000-000000000065
       renderTarget: !<reference.Texture> 08e8eacd-5c0e-498d-8d10-df6d7e7fe54c
       lookAt: !<reference.LookAtComponent> 54e43bbf-111a-436f-9d9b-8e4a4628f329

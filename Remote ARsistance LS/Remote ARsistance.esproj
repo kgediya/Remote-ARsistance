@@ -13,7 +13,7 @@ metaInfo:
     []
   tags:
     []
-  lensName: Remote ARsistance
+  lensName: Relay View
   lensDescriptors:
     []
   lensApplicability:
@@ -22,7 +22,7 @@ metaInfo:
   lensClientCompatibilities:
     - Spectacles
   platformBundlesEnabled: false
-  iconHash: edc5d46deff7388dba54d52a3f23a936
+  iconHash: 1d2fc2b17d5f64e3eef5e3d59cb5ac00
   videoPreviewHash: ""
   fromTemplateName: Default
   fromTemplateUrl: Lens Studio 5.10.1.25061003

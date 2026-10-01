@@ -252,3 +252,6 @@ label { display: block; color: #a7b7b3; margin-bottom: 10px; }
   .workspace-actions .button { flex: 1; }
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; } }
+
+.region-hint { display: flex; align-items: center; gap: 7px; margin-top: 6px; font-size: 11px; color: var(--accent); font-weight: 500; }
+.region-hint-dot { width: 6px; height: 6px; background: var(--accent); border-radius: 50%; box-shadow: 0 0 8px var(--accent); flex: none; }

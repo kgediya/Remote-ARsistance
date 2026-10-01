@@ -404,7 +404,7 @@
       }
     };
 
-    ws.onclose = () => {
+    ws.onclose = event => {
       if (socket !== ws) return;
       if (userLeaving) return;
       if (connected) {
@@ -429,7 +429,7 @@
           $('reconnectRetryBtn').hidden = false;
         }
       } else {
-        reset('Unable to join this session.', 'error');
+        reset(event?.reason || 'Unable to join this session.', 'error');
       }
     };
   }

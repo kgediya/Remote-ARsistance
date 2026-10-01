@@ -191,3 +191,27 @@ test('server supports regional session codes and normalized matching', async () 
     await new Promise(resolve => server.close(resolve));
   }
 });
+
+test('server allows relayview domain and blocks unknown origins', async () => {
+  const server = createServer();
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  const port = server.address().port;
+  const url = 'ws://127.0.0.1:' + port;
+
+  // Allowed origin: relayview.allthingskrazyy.com
+  const allowedWs = new WebSocket(url, { headers: { Origin: 'https://relayview.allthingskrazyy.com' } });
+  await new Promise(resolve => allowedWs.once('open', resolve));
+  assert.equal(allowedWs.readyState, WebSocket.OPEN);
+  allowedWs.terminate();
+
+  // Blocked origin: unknown-domain.com
+  const blockedWs = new WebSocket(url, { headers: { Origin: 'https://evil-unauthorized-site.com' } });
+  const closeEvent = await new Promise(resolve => {
+    blockedWs.once('close', (code, reason) => resolve({ code, reason: reason.toString() }));
+  });
+  assert.equal(closeEvent.code, 1008);
+  assert.equal(closeEvent.reason, 'Origin denied');
+
+  await new Promise(resolve => server.close(resolve));
+});
+

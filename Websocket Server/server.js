@@ -87,10 +87,25 @@ function createServer() {
     debug('socket-open', { peer: ws.debugId, origin: req.headers.origin || 'none' });
     ws._socket?.setNoDelay(true);
     if (wss.clients.size > 100) { ws.close(1013, 'Server busy'); return; }
-    const allowedOrigin = process.env.ALLOWED_ORIGIN || 'https://' + req.headers.host;
-    const localOrigin = 'http://' + req.headers.host;
-    if (req.headers.origin && req.headers.origin !== allowedOrigin &&
-        !(process.env.NODE_ENV !== 'production' && req.headers.origin === localOrigin)) {
+    function isOriginAllowed(origin, host) {
+      if (!origin) return true;
+      try {
+        const u = new URL(origin);
+        if (process.env.ALLOWED_ORIGIN) {
+          const allowedList = process.env.ALLOWED_ORIGIN.split(',').map(s => s.trim().toLowerCase());
+          if (allowedList.includes(origin.toLowerCase()) || allowedList.includes(u.origin.toLowerCase())) return true;
+        }
+        if (u.host === host) return true;
+        if (u.hostname === 'relayview.allthingskrazyy.com' || u.hostname.endsWith('.allthingskrazyy.com')) return true;
+        if (u.hostname.endsWith('.run.app')) return true;
+        if (u.hostname === 'localhost' || u.hostname === '127.0.0.1') return true;
+      } catch (_) {
+        return false;
+      }
+      return false;
+    }
+
+    if (!isOriginAllowed(req.headers.origin, req.headers.host)) {
       ws.close(1008, 'Origin denied');
       return;
     }

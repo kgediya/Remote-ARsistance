@@ -139,14 +139,10 @@
               </div>
               <div class="toolbar-divider"></div>
               <div class="toolbar-group">
-                <div class="placement-badge" id="placementBadge" title="Headset AR tracking & anchoring status">
+                <div class="placement-badge" id="placementBadge" title="Headset AR tracking status">
                   <span class="badge-dot" id="placementDot"></span>
-                  <span id="placementText">Mode A: Surface Anchored</span>
+                  <span id="placementText">SURFACE ANCHORED</span>
                 </div>
-                <button type="button" class="sim-toggle-btn" id="btnSimPreview" title="Toggle Mock 3D Wearer Perspective (Simulation)">
-                  <svg class="icon"><use href="#i-goggles"/></svg>
-                  <span>3D Sim</span>
-                </button>
               </div>
             </div>
             <div class="feed-stalled-overlay" id="feedWarning" hidden>
@@ -161,7 +157,7 @@
             <div class="stage-corner stage-corner-tl" aria-hidden="true"></div><div class="stage-corner stage-corner-tr" aria-hidden="true"></div><div class="stage-corner stage-corner-bl" aria-hidden="true"></div><div class="stage-corner stage-corner-br" aria-hidden="true"></div>
             <span class="stage-live-tag" id="feedBadge"><span></span> WAITING FOR FEED</span>
           </div>
-          <div class="video-foot"><span id="videoHint"><svg class="icon"><use href="#i-pen"/></svg> Draw directly on live view: Circle, Arrow, Pen, or Label</span><span id="latency">Measuring connection…</span></div>
+          <div class="video-foot"><span id="videoHint"><svg class="icon"><use href="#i-pin"/></svg> Point and mark on live view to guide technician</span><span id="latency">Measuring connection…</span></div>
         </section>
         <section class="call-card" aria-label="Voice call controls">
           <div class="call-copy"><div class="call-icon"><svg class="icon"><use href="#i-headset"/></svg></div><div><strong>Voice connection</strong><span id="callState">Start a call to speak with the technician</span></div></div>

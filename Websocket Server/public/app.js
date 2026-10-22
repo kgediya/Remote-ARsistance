@@ -305,7 +305,7 @@
     if (hint) {
       if (detectedRegion) {
         hint.hidden = false;
-        $('regionHintText').textContent = '⚡ Low-latency route: ' + detectedRegion.name;
+        $('regionHintText').textContent = 'Direct route: ' + detectedRegion.name;
       } else {
         hint.hidden = true;
       }
@@ -578,13 +578,13 @@
     const distStr = distMeters ? " (" + Number(distMeters).toFixed(1) + "m)" : "";
     if (mode === "A" || surfaceHit) {
       badge.classList.add("mode-a");
-      text.textContent = "Mode A: Surface Anchored" + distStr;
+      text.textContent = "SURFACE ANCHORED" + distStr;
     } else if (mode === "B") {
       badge.classList.add("mode-b");
-      text.textContent = "Mode B: Approximate" + distStr;
+      text.textContent = "APPROXIMATE" + distStr;
     } else {
       badge.classList.add("mode-c");
-      text.textContent = "Mode C: Screen Overlay";
+      text.textContent = "OVERLAY";
     }
   }
 
@@ -943,10 +943,10 @@
 
     // Directional Guidance Indicator (Phase 6 requirement in simulation)
     if (offScreenLeft > 0) {
-      drawGuidanceIndicator(ctx, 20, h * 0.5, "◂ " + offScreenLeft + " Off-screen AR Marker", true);
+      drawGuidanceIndicator(ctx, 20, h * 0.5, "< " + offScreenLeft + " Off-screen AR Marker", true);
     }
     if (offScreenRight > 0) {
-      drawGuidanceIndicator(ctx, w - 20, h * 0.5, offScreenRight + " Off-screen AR Marker ▸", false);
+      drawGuidanceIndicator(ctx, w - 20, h * 0.5, offScreenRight + " Off-screen AR Marker >", false);
     }
 
     // Simulation Banner

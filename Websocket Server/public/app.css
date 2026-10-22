@@ -257,7 +257,8 @@ label { display: block; color: #a7b7b3; margin-bottom: 10px; }
 .region-hint-dot { width: 6px; height: 6px; background: var(--accent); border-radius: 50%; box-shadow: 0 0 8px var(--accent); flex: none; }
 
 
-/* --- Spatial Annotation Toolbar & Vector Canvas Styles (Phases 1-7) --- */
+
+/* --- RelayView Spatial Assistance Controls --- */
 .annotation-canvas {
   position: absolute;
   z-index: 2;
@@ -270,198 +271,141 @@ label { display: block; color: #a7b7b3; margin-bottom: 10px; }
 
 .annotation-toolbar {
   position: absolute;
-  top: 14px;
+  top: 12px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 10;
   display: flex;
   align-items: center;
   gap: 6px;
-  background: rgba(14, 21, 25, 0.92);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 9999px;
-  padding: 5px 12px;
-  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.55);
-  transition: opacity 0.2s ease, transform 0.2s ease;
+  background: var(--panel-deep);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 4px 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
   max-width: calc(100% - 24px);
   overflow-x: auto;
 }
 
-.toolbar-group {
+.annotation-toolbar .toolbar-group {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
 }
 
-.toolbar-divider {
+.annotation-toolbar .toolbar-divider {
   width: 1px;
-  height: 22px;
-  background: rgba(255, 255, 255, 0.14);
+  height: 18px;
+  background: var(--line);
   margin: 0 4px;
   flex: none;
 }
 
-.tool-btn {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
+.annotation-toolbar .tool-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
   border: 1px solid transparent;
   background: transparent;
-  color: #a4b4b0;
+  color: var(--muted);
   display: grid;
   place-items: center;
   padding: 0;
-  position: relative;
-  transition: all 0.18s cubic-bezier(0.2, 0, 0, 1);
+  transition: all 0.15s ease;
 }
 
-.tool-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
+.annotation-toolbar .tool-btn:hover {
+  color: var(--text);
+  background: #ffffff0d;
 }
 
-.tool-btn.active {
-  background: rgba(212, 243, 111, 0.18);
-  border-color: var(--accent);
+.annotation-toolbar .tool-btn.active {
   color: var(--accent);
-  box-shadow: 0 0 12px rgba(212, 243, 111, 0.25);
+  background: #d4f36f18;
+  border-color: #d4f36f33;
 }
 
-.tool-btn:disabled {
-  opacity: 0.3;
+.annotation-toolbar .tool-btn:disabled {
+  opacity: 0.25;
   cursor: not-allowed;
 }
 
-.tool-btn-danger:hover {
+.annotation-toolbar .tool-btn-danger:hover {
   color: var(--danger);
-  background: rgba(255, 134, 121, 0.15);
+  background: #ff867918;
 }
 
-.color-swatch {
-  width: 20px;
-  height: 20px;
+.annotation-toolbar .color-swatch {
+  width: 15px;
+  height: 15px;
   border-radius: 50%;
-  border: 2px solid rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(0, 0, 0, 0.4);
   background: var(--swatch-color);
   cursor: pointer;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
   padding: 0;
-  outline-offset: 2px;
+  transition: transform 0.12s ease;
 }
 
-.color-swatch:hover {
-  transform: scale(1.15);
+.annotation-toolbar .color-swatch:hover {
+  transform: scale(1.18);
 }
 
-.color-swatch.active {
-  transform: scale(1.22);
-  box-shadow: 0 0 0 2px var(--panel), 0 0 0 4px var(--swatch-color);
+.annotation-toolbar .color-swatch.active {
+  box-shadow: 0 0 0 2px var(--panel), 0 0 0 3.5px var(--swatch-color);
 }
 
-.stroke-btn {
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
+.annotation-toolbar .stroke-btn {
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
   border: 1px solid transparent;
   background: transparent;
   display: grid;
   place-items: center;
   cursor: pointer;
-  color: #a4b4b0;
+  color: var(--muted);
   padding: 0;
 }
 
-.stroke-btn:hover {
-  background: rgba(255, 255, 255, 0.08);
+.annotation-toolbar .stroke-btn:hover {
+  color: var(--text);
+  background: #ffffff0d;
 }
 
-.stroke-btn.active {
-  border-color: rgba(255, 255, 255, 0.35);
-  background: rgba(255, 255, 255, 0.14);
-  color: #fff;
+.annotation-toolbar .stroke-btn.active {
+  color: var(--accent);
+  border-color: #d4f36f33;
+  background: #d4f36f18;
 }
 
-.stroke-dot {
+.annotation-toolbar .stroke-dot {
   background: currentColor;
   border-radius: 50%;
 }
 
-.placement-badge {
+.annotation-toolbar .placement-badge {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 10px;
-  border-radius: 100px;
-  font-size: 10.5px;
-  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 700;
   font-family: var(--font-display);
-  background: rgba(0, 0, 0, 0.38);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #c4d4cf;
-  white-space: nowrap;
-}
-
-.badge-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: #42D9F5;
-  box-shadow: 0 0 8px #42D9F5;
-}
-
-.placement-badge.mode-a .badge-dot { background: #42D9F5; box-shadow: 0 0 8px #42D9F5; }
-.placement-badge.mode-b .badge-dot { background: #FFD84D; box-shadow: 0 0 8px #FFD84D; }
-.placement-badge.mode-c .badge-dot { background: #FF8A3D; box-shadow: 0 0 8px #FF8A3D; }
-
-.sim-toggle-btn {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  padding: 4px 10px;
-  border-radius: 100px;
-  font-size: 11px;
-  font-weight: 700;
-  background: rgba(66, 217, 245, 0.12);
-  border: 1px solid rgba(66, 217, 245, 0.4);
-  color: #42D9F5;
-  transition: all 0.15s ease;
-  white-space: nowrap;
-}
-
-.sim-toggle-btn:hover {
-  background: rgba(66, 217, 245, 0.22);
-}
-
-.sim-toggle-btn.active {
-  background: #42D9F5;
-  color: #0b1014;
-  box-shadow: 0 0 14px rgba(66, 217, 245, 0.4);
-}
-
-.sim-toggle-btn .icon {
-  width: 14px;
-  height: 14px;
-}
-
-.sim-overlay-banner {
-  position: absolute;
-  bottom: 16px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 10;
-  background: rgba(14, 21, 25, 0.94);
-  border: 1px solid #42D9F5;
-  border-radius: 8px;
-  padding: 6px 14px;
-  font-size: 11px;
-  font-weight: 700;
-  color: #42D9F5;
   letter-spacing: 0.08em;
-  pointer-events: none;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.6);
+  background: #182228;
+  border: 1px solid var(--line);
+  color: var(--muted);
+  white-space: nowrap;
 }
+
+.annotation-toolbar .badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.annotation-toolbar .placement-badge.mode-a .badge-dot { background: #42D9F5; box-shadow: 0 0 6px #42D9F5; }
+.annotation-toolbar .placement-badge.mode-b .badge-dot { background: var(--accent); box-shadow: 0 0 6px var(--accent); }
+.annotation-toolbar .placement-badge.mode-c .badge-dot { background: #FF8A3D; box-shadow: 0 0 6px #FF8A3D; }

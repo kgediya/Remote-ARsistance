@@ -19,6 +19,8 @@ relayview_region="${RELAYVIEW_REGION:-}"
 if [[ -z "$relayview_region" ]]; then
   if [[ "$region" == *"asia"* ]]; then
     relayview_region="IN"
+  elif [[ "$region" == *"europe"* ]]; then
+    relayview_region="EU"
   else
     relayview_region="US"
   fi

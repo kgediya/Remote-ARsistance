@@ -122,7 +122,7 @@ class RemoteCall {
       }
       if (!this._loggedReceive) {
         this._loggedReceive = true;
-        console.log('[RelayView][call] receiving audio packets from Spectacles (' + packet.byteLength + 'B)');
+        console.log('[RelayView][call] receiving audio packets from XR / Spatial Glasses (' + packet.byteLength + 'B)');
       }
       const count = (packet.byteLength - 1) / 2;
       const buffer = this.context.createBuffer(1, count, 16000);

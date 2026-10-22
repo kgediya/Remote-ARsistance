@@ -203,12 +203,20 @@ function createServer() {
         }
       } else if (msg.action === 'annotate' && ws.role === 'web') {
         const data = msg.data;
-        if (data?.type === 'text' && typeof data.label === 'string' &&
-            data.label.trim().length > 0 && data.label.length <= 80 &&
-            Number.isFinite(data.x) && Number.isFinite(data.y) &&
-            data.x >= 0 && data.x <= 1 && data.y >= 0 && data.y <= 1) {
-          send(session.specs, { action: 'annotate', data: { type: 'text', label: data.label.trim(), x: data.x, y: data.y } });
+        if (data && typeof data === 'object') {
+          if (data.type === 'text' && typeof data.label === 'string' &&
+              data.label.trim().length > 0 && data.label.length <= 80 &&
+              Number.isFinite(data.x) && Number.isFinite(data.y) &&
+              data.x >= 0 && data.x <= 1 && data.y >= 0 && data.y <= 1) {
+            send(session.specs, { action: 'annotate', data: { type: 'text', label: data.label.trim(), x: data.x, y: data.y, frameId: data.frameId } });
+          } else {
+            send(session.specs, { action: 'annotate', data });
+          }
         }
+      } else if ((msg.action === 'clear' || msg.action === 'clear-annotations') && ws.role === 'web') {
+        send(session.specs, { action: 'clear-annotations' });
+      } else if (msg.action === 'annotation-feedback' && ws.role === 'specs') {
+        send(session.web, { action: 'annotation-feedback', data: msg.data });
       } else if (msg.action === 'call-state' && ws.role === 'web') {
         if (msg.state === 'start' || msg.state === 'stop') {
           session.callActive = msg.state === 'start';

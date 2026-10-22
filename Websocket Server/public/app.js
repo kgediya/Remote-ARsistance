@@ -28,6 +28,12 @@
       name: 'Iowa, USA (us-central1)',
       short: 'US Central',
       host: 'remote-arsistance-597953322753.us-central1.run.app'
+    },
+    'EU': {
+      code: 'EU',
+      name: 'Belgium, Europe (europe-west1)',
+      short: 'Europe',
+      host: 'remote-arsistance-597953322753.europe-west1.run.app'
     }
   };
 
@@ -108,12 +114,15 @@
     lastFrameAt = 0;
     newestFrame++;
     $('liveCanvas').hidden = true;
+    if ($('annotationCanvas')) $('annotationCanvas').hidden = true;
+    if ($('annotationToolbar')) $('annotationToolbar').hidden = true;
     $('videoPlaceholder').hidden = false;
     $('feedWarning').hidden = true;
     $('latency').textContent = 'Measuring connection…';
     if (full) {
       $('chatLog').replaceChildren($('chatEmpty'));
       $('chatEmpty').hidden = false;
+      if (typeof clearAllAnnotationsInternal === 'function') clearAllAnnotationsInternal(false);
     }
     setFeedState('waiting');
   }
@@ -164,11 +173,26 @@
   }
   function fitCanvas() {
     const canvas = $('liveCanvas');
+    const annCanvas = $('annotationCanvas');
     if (canvas.hidden || !canvas.width || !canvas.height) return;
     const stage = $('videoStage');
     const scale = Math.min(stage.clientWidth / canvas.width, stage.clientHeight / canvas.height);
-    canvas.style.width = Math.floor(canvas.width * scale) + 'px';
-    canvas.style.height = Math.floor(canvas.height * scale) + 'px';
+    const w = Math.floor(canvas.width * scale) + 'px';
+    const h = Math.floor(canvas.height * scale) + 'px';
+    canvas.style.width = w;
+    canvas.style.height = h;
+    if (annCanvas) {
+      if (annCanvas.width !== canvas.width || annCanvas.height !== canvas.height) {
+        annCanvas.width = canvas.width;
+        annCanvas.height = canvas.height;
+      }
+      annCanvas.style.width = w;
+      annCanvas.style.height = h;
+      annCanvas.hidden = false;
+      if (typeof renderAnnotations === 'function') renderAnnotations();
+    }
+    const toolbar = $('annotationToolbar');
+    if (toolbar && connected) toolbar.hidden = false;
   }
   window.addEventListener('resize', fitCanvas);
 
@@ -260,10 +284,10 @@
     let formatted = raw;
     let detectedRegion = null;
 
-    if (raw.startsWith('IN') || raw.startsWith('US')) {
+    const prefix = raw.slice(0, 2);
+    if (REGION_GATEWAYS[prefix]) {
       raw = raw.slice(0, 8);
-      if (raw.startsWith('IN')) detectedRegion = REGION_GATEWAYS.IN;
-      if (raw.startsWith('US')) detectedRegion = REGION_GATEWAYS.US;
+      detectedRegion = REGION_GATEWAYS[prefix];
       if (raw.length > 5) {
         formatted = raw.slice(0, 2) + '-' + raw.slice(2, 5) + '-' + raw.slice(5);
       } else if (raw.length > 2) {
@@ -298,12 +322,10 @@
     let targetHost = location.host;
     let selectedRegion = null;
 
-    if (clean.startsWith('IN') && clean.length > 2) {
-      targetHost = REGION_GATEWAYS.IN.host;
-      selectedRegion = REGION_GATEWAYS.IN;
-    } else if (clean.startsWith('US') && clean.length > 2) {
-      targetHost = REGION_GATEWAYS.US.host;
-      selectedRegion = REGION_GATEWAYS.US;
+    const cleanPrefix = clean.slice(0, 2);
+    if (REGION_GATEWAYS[cleanPrefix] && clean.length > 2) {
+      targetHost = REGION_GATEWAYS[cleanPrefix].host;
+      selectedRegion = REGION_GATEWAYS[cleanPrefix];
     }
     currentRegion = selectedRegion;
 
@@ -318,7 +340,7 @@
     ws.binaryType = 'arraybuffer';
     socket = ws;
     call = new RemoteCall(ws, setCallState, () => {
-      showToast("Technician's audio is silent. Check Spectacles or ask technician to restart device if issue persists.", 'warning', 8500);
+      showToast("Technician's audio is silent. Ask technician to check their XR / Spatial Glasses if issue persists.", 'warning', 8500);
     });
 
     ws.onopen = () => {
@@ -389,7 +411,11 @@
         call?.stop(false);
         showToast('Voice call ended by peer.', 'info', 4000);
       } else if (msg.action === 'mic-status' && msg.status === 'waiting') {
-        showToast(msg.message || "Technician's mic is silent. If issue persists, please have technician restart Spectacles.", 'warning', 8500);
+        showToast(msg.message || "Technician's mic is silent. If issue persists, please have technician check their XR / Spatial Glasses.", 'warning', 8500);
+      } else if (msg.action === 'annotation-feedback' && msg.data) {
+        if (typeof updatePlacementStatus === 'function') {
+          updatePlacementStatus(msg.data.placementMode, msg.data.surfaceHit, msg.data.distanceMeters);
+        }
       } else if (msg.action === 'chat' && typeof msg.data?.message === 'string') {
         appendMessage(msg.from, msg.data.message);
       }
@@ -447,7 +473,7 @@
     event.preventDefault();
     const code = $('sessionCode').value.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
     if (!/^([A-Z]{2})?[A-HJ-NP-Z2-9]{6}$/.test(code)) {
-      showToast('Enter the session code (e.g. IN-XXX-XXX or XXX-XXX) shown on Spectacles.', 'error');
+      showToast("Enter the session code (e.g. IN-XXX-XXX or XXX-XXX) shown on the technician's XR / Spatial Glasses.", 'error');
       $('sessionCode').focus();
       return;
     }
@@ -516,12 +542,702 @@
     modalOpener?.focus?.();
     modalOpener = null;
   }
-  $('liveCanvas').addEventListener('click', event => {
-    if (!connected || !lastFrameAt) return;
-    const rect = event.currentTarget.getBoundingClientRect();
+  // ==========================================
+  // SPATIAL DOODLE ANNOTATION ENGINE (PHASES 1-7)
+  // ==========================================
+  let annotations = [];
+  let undoStack = [];
+  let redoStack = [];
+  let activeTool = "circle";
+  let activeColor = "#FFD84D";
+  let activeStrokeWidth = 4;
+  let isDrawing = false;
+  let currentStroke = [];
+  let labelTargetPoint = null;
+
+  // 3D Wearer Perspective Mock Simulation State (Phase 7)
+  let isSimMode = false;
+  let simYaw = 0;
+  let simPitch = 0;
+  let simDragging = false;
+  let simLastX = 0;
+  let simLastY = 0;
+
+  function updateUndoRedoButtons() {
+    const undoBtn = $("btnUndo");
+    const redoBtn = $("btnRedo");
+    if (undoBtn) undoBtn.disabled = undoStack.length === 0;
+    if (redoBtn) redoBtn.disabled = redoStack.length === 0;
+  }
+
+  function updatePlacementStatus(mode, surfaceHit, distMeters) {
+    const badge = $("placementBadge");
+    const text = $("placementText");
+    if (!badge || !text) return;
+    badge.classList.remove("mode-a", "mode-b", "mode-c");
+    const distStr = distMeters ? " (" + Number(distMeters).toFixed(1) + "m)" : "";
+    if (mode === "A" || surfaceHit) {
+      badge.classList.add("mode-a");
+      text.textContent = "Mode A: Surface Anchored" + distStr;
+    } else if (mode === "B") {
+      badge.classList.add("mode-b");
+      text.textContent = "Mode B: Approximate" + distStr;
+    } else {
+      badge.classList.add("mode-c");
+      text.textContent = "Mode C: Screen Overlay";
+    }
+  }
+
+  function clearAllAnnotationsInternal(notifyPeer = true) {
+    if (annotations.length > 0 && notifyPeer) {
+      undoStack.push({ type: "clear", previous: [...annotations] });
+      redoStack = [];
+      updateUndoRedoButtons();
+    }
+    annotations = [];
+    currentStroke = [];
+    isDrawing = false;
+    renderAnnotations();
+    if (notifyPeer) {
+      send({ action: "clear-annotations" });
+      showToast("All annotations cleared.", "info");
+    }
+  }
+
+  // --- Geometry Algorithms (Phase 2 & 7) ---
+  function distanceToSegment(p, a, b) {
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
+    const lenSq = dx * dx + dy * dy;
+    if (lenSq < 1e-8) {
+      return Math.hypot(p.x - a.x, p.y - a.y);
+    }
+    const t = Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / lenSq));
+    const projX = a.x + t * dx;
+    const projY = a.y + t * dy;
+    return Math.hypot(p.x - projX, p.y - projY);
+  }
+
+  function rdpSimplify(points, epsilon = 0.003) {
+    if (points.length <= 2) return points;
+    let maxDist = 0;
+    let maxIdx = 0;
+    const first = points[0];
+    const last = points[points.length - 1];
+
+    for (let i = 1; i < points.length - 1; i++) {
+      const d = distanceToSegment(points[i], first, last);
+      if (d > maxDist) {
+        maxDist = d;
+        maxIdx = i;
+      }
+    }
+    if (maxDist > epsilon) {
+      const left = rdpSimplify(points.slice(0, maxIdx + 1), epsilon);
+      const right = rdpSimplify(points.slice(maxIdx), epsilon);
+      return left.slice(0, -1).concat(right);
+    } else {
+      return [first, last];
+    }
+  }
+
+  function catmullRomSpline(points, subdivisions = 4) {
+    if (points.length < 3) return points;
+    const res = [];
+    const p = [points[0], ...points, points[points.length - 1]];
+
+    for (let i = 0; i < p.length - 3; i++) {
+      const p0 = p[i], p1 = p[i + 1], p2 = p[i + 2], p3 = p[i + 3];
+      for (let step = 0; step < subdivisions; step++) {
+        const t = step / subdivisions;
+        const t2 = t * t;
+        const t3 = t2 * t;
+        const x = 0.5 * (
+          (2 * p1.x) +
+          (-p0.x + p2.x) * t +
+          (2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x) * t2 +
+          (-p0.x + 3 * p1.x - 3 * p2.x + p3.x) * t3
+        );
+        const y = 0.5 * (
+          (2 * p1.y) +
+          (-p0.y + p2.y) * t +
+          (2 * p0.y - 5 * p1.y + 4 * p2.y - p3.y) * t2 +
+          (-p0.y + 3 * p1.y - 3 * p2.y + p3.y) * t3
+        );
+        res.push({ x, y });
+      }
+    }
+    res.push(points[points.length - 1]);
+    return res;
+  }
+
+  function smoothCircle(points) {
+    if (!points.length) return { cx: 0.5, cy: 0.5, rx: 0.05, ry: 0.05 };
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    for (const pt of points) {
+      if (pt.x < minX) minX = pt.x;
+      if (pt.x > maxX) maxX = pt.x;
+      if (pt.y < minY) minY = pt.y;
+      if (pt.y > maxY) maxY = pt.y;
+    }
+    const cx = (minX + maxX) / 2;
+    const cy = (minY + maxY) / 2;
+    const rx = Math.max(0.015, (maxX - minX) / 2);
+    const ry = Math.max(0.015, (maxY - minY) / 2);
+    return { cx, cy, rx, ry };
+  }
+
+  function getNormalizedCoords(event) {
+    const canvas = $("annotationCanvas");
+    if (!canvas) return null;
+    const rect = canvas.getBoundingClientRect();
     const x = (event.clientX - rect.left) / rect.width;
     const y = (event.clientY - rect.top) / rect.height;
-    if (x >= 0 && x <= 1 && y >= 0 && y <= 1) openModal('annotation', { x, y });
+    if (x < 0 || x > 1 || y < 0 || y > 1) return null;
+    return { x, y };
+  }
+
+  // --- Rendering Vector Annotations (Phase 2 & 7) ---
+  function renderAnnotations() {
+    const canvas = $("annotationCanvas");
+    if (!canvas || canvas.hidden) return;
+    const ctx = canvas.getContext("2d");
+    const w = canvas.width;
+    const h = canvas.height;
+    ctx.clearRect(0, 0, w, h);
+
+    // Mock 3D Wearer Perspective Simulation (Phase 7)
+    if (isSimMode) {
+      renderSimulatedHeadsetView(ctx, w, h);
+      return;
+    }
+
+    // Render committed annotations
+    for (const ann of annotations) {
+      drawSingleAnnotation(ctx, ann, w, h);
+    }
+
+    // Render live drawing stroke preview
+    if (isDrawing && currentStroke.length > 0) {
+      const previewAnn = {
+        tool: activeTool,
+        type: activeTool,
+        points: currentStroke,
+        color: activeColor,
+        strokeWidth: activeStrokeWidth,
+        label: ""
+      };
+      drawSingleAnnotation(ctx, previewAnn, w, h, true);
+    }
+  }
+
+  function drawSingleAnnotation(ctx, ann, w, h, isPreview = false) {
+    if (!ann.points || !ann.points.length) return;
+
+    const baseWidth = (ann.strokeWidth || 4) * (w / 480);
+    const haloWidth = baseWidth + 4;
+    const color = ann.color || "#FFD84D";
+    const haloColor = "rgba(11, 16, 20, 0.75)";
+
+    ctx.save();
+
+    if (ann.type === "circle") {
+      const circle = smoothCircle(ann.points);
+      const cx = circle.cx * w;
+      const cy = circle.cy * h;
+      const rx = circle.rx * w;
+      const ry = circle.ry * h;
+
+      // Halo outline for contrast
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+      ctx.strokeStyle = haloColor;
+      ctx.lineWidth = haloWidth;
+      ctx.stroke();
+
+      // Vibrant colored outline
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = baseWidth;
+      ctx.stroke();
+
+    } else if (ann.type === "arrow") {
+      const pts = ann.points.length > 3 ? catmullRomSpline(ann.points) : ann.points;
+      if (pts.length < 2) { ctx.restore(); return; }
+
+      // Shaft
+      ctx.beginPath();
+      ctx.moveTo(pts[0].x * w, pts[0].y * h);
+      for (let i = 1; i < pts.length; i++) {
+        ctx.lineTo(pts[i].x * w, pts[i].y * h);
+      }
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+
+      ctx.strokeStyle = haloColor;
+      ctx.lineWidth = haloWidth;
+      ctx.stroke();
+
+      ctx.strokeStyle = color;
+      ctx.lineWidth = baseWidth;
+      ctx.stroke();
+
+      // Arrowhead tangent
+      const tip = pts[pts.length - 1];
+      const prev = pts[Math.max(0, pts.length - 3)];
+      const dx = (tip.x - prev.x) * w;
+      const dy = (tip.y - prev.y) * h;
+      const angle = Math.atan2(dy, dx);
+      const headLen = Math.max(18, baseWidth * 3.5);
+      const headAngle = Math.PI / 6.0;
+
+      const lx = tip.x * w + headLen * Math.cos(angle + Math.PI - headAngle);
+      const ly = tip.y * h + headLen * Math.sin(angle + Math.PI - headAngle);
+      const rx = tip.x * w + headLen * Math.cos(angle + Math.PI + headAngle);
+      const ry = tip.y * h + headLen * Math.sin(angle + Math.PI + headAngle);
+
+      ctx.beginPath();
+      ctx.moveTo(lx, ly);
+      ctx.lineTo(tip.x * w, tip.y * h);
+      ctx.lineTo(rx, ry);
+
+      ctx.strokeStyle = haloColor;
+      ctx.lineWidth = haloWidth;
+      ctx.stroke();
+
+      ctx.strokeStyle = color;
+      ctx.lineWidth = baseWidth;
+      ctx.stroke();
+
+    } else if (ann.type === "pen") {
+      const pts = ann.points.length > 3 ? catmullRomSpline(ann.points) : ann.points;
+      if (!pts.length) { ctx.restore(); return; }
+
+      ctx.beginPath();
+      ctx.moveTo(pts[0].x * w, pts[0].y * h);
+      for (let i = 1; i < pts.length; i++) {
+        ctx.lineTo(pts[i].x * w, pts[i].y * h);
+      }
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+
+      ctx.strokeStyle = haloColor;
+      ctx.lineWidth = haloWidth;
+      ctx.stroke();
+
+      ctx.strokeStyle = color;
+      ctx.lineWidth = baseWidth;
+      ctx.stroke();
+
+    } else if (ann.type === "label" || ann.type === "text") {
+      const pt = ann.points[0];
+      const px = pt.x * w;
+      const py = pt.y * h;
+      const labelText = ann.label || "Target Note";
+
+      // Leader line
+      const offsetX = 30;
+      const offsetY = -40;
+      const bx = Math.max(10, Math.min(w - 180, px + offsetX));
+      const by = Math.max(25, Math.min(h - 35, py + offsetY));
+
+      ctx.beginPath();
+      ctx.moveTo(px, py);
+      ctx.lineTo(bx, by);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      ctx.setLineDash([4, 4]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Target pin circle
+      ctx.beginPath();
+      ctx.arc(px, py, 5, 0, Math.PI * 2);
+      ctx.fillStyle = color;
+      ctx.fill();
+
+      // Rounded background pill
+      ctx.font = "bold 13px 'DM Sans', sans-serif";
+      const metrics = ctx.measureText(labelText);
+      const boxW = metrics.width + 24;
+      const boxH = 28;
+      const rx = 14;
+
+      ctx.fillStyle = "rgba(15, 23, 42, 0.94)";
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+
+      ctx.beginPath();
+      ctx.roundRect(bx - 4, by - boxH / 2, boxW, boxH, rx);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = color;
+      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
+      ctx.fillText(labelText, bx + 8, by);
+    }
+
+    ctx.restore();
+  }
+
+  // --- Phase 7: Mock 3D Wearer Perspective Simulation ---
+  function renderSimulatedHeadsetView(ctx, w, h) {
+    // 3D Background with horizon and ground grid
+    const skyGrad = ctx.createLinearGradient(0, 0, 0, h);
+    skyGrad.addColorStop(0, "#080e14");
+    skyGrad.addColorStop(1, "#121d24");
+    ctx.fillStyle = skyGrad;
+    ctx.fillRect(0, 0, w, h);
+
+    // Horizon with yaw/pitch shift
+    const horizonY = h * 0.5 + simPitch * h * 0.8;
+    ctx.strokeStyle = "rgba(66, 217, 245, 0.15)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(0, horizonY);
+    ctx.lineTo(w, horizonY);
+    ctx.stroke();
+
+    // Perspective floor lines
+    ctx.strokeStyle = "rgba(66, 217, 245, 0.08)";
+    for (let x = -w; x <= w * 2; x += 60) {
+      ctx.beginPath();
+      ctx.moveTo(x - simYaw * 300, h);
+      ctx.lineTo(w * 0.5 - simYaw * 50, horizonY);
+      ctx.stroke();
+    }
+
+    // Unproject & render 3D annotations
+    let offScreenLeft = 0;
+    let offScreenRight = 0;
+
+    for (const ann of annotations) {
+      if (!ann.points || !ann.points.length) continue;
+      // Transform normalized points relative to virtual head pose
+      const transformedPoints = ann.points.map(pt => {
+        // Center offset relative to camera center (0.5, 0.5)
+        const relX = pt.x - 0.5;
+        const relY = pt.y - 0.5;
+        // Apply yaw & pitch rotation in 3D
+        const rotX = relX * Math.cos(-simYaw) - (-1.2) * Math.sin(-simYaw);
+        const rotZ = relX * Math.sin(-simYaw) + (-1.2) * Math.cos(-simYaw);
+        const rotY = relY - simPitch * 0.8;
+
+        // Project back to perspective view
+        const fovScale = 0.8 / Math.abs(rotZ);
+        const projX = (0.5 + rotX * fovScale);
+        const projY = (0.5 + rotY * fovScale);
+        return { x: projX, y: projY, z: rotZ };
+      });
+
+      // Check if annotation is off-screen
+      const centerPt = transformedPoints[Math.floor(transformedPoints.length / 2)];
+      if (centerPt.x < 0.05) offScreenLeft++;
+      else if (centerPt.x > 0.95) offScreenRight++;
+
+      const simAnn = { ...ann, points: transformedPoints };
+      drawSingleAnnotation(ctx, simAnn, w, h);
+    }
+
+    // Directional Guidance Indicator (Phase 6 requirement in simulation)
+    if (offScreenLeft > 0) {
+      drawGuidanceIndicator(ctx, 20, h * 0.5, "◂ " + offScreenLeft + " Off-screen AR Marker", true);
+    }
+    if (offScreenRight > 0) {
+      drawGuidanceIndicator(ctx, w - 20, h * 0.5, offScreenRight + " Off-screen AR Marker ▸", false);
+    }
+
+    // Simulation Banner
+    ctx.save();
+    ctx.fillStyle = "rgba(66, 217, 245, 0.15)";
+    ctx.strokeStyle = "#42D9F5";
+    ctx.lineWidth = 1.5;
+    ctx.roundRect(w * 0.5 - 160, h - 42, 320, 30, 8);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = "#42D9F5";
+    ctx.font = "bold 11px 'Space Grotesk', sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("3D WEARER SIMULATION · DRAG TO ROTATE HEAD", w * 0.5, h - 27);
+    ctx.restore();
+  }
+
+  function drawGuidanceIndicator(ctx, x, y, text, isLeft) {
+    ctx.save();
+    ctx.font = "bold 11px 'Space Grotesk', sans-serif";
+    const tw = ctx.measureText(text).width + 20;
+    const bx = isLeft ? x : x - tw;
+
+    ctx.fillStyle = "rgba(255, 216, 77, 0.22)";
+    ctx.strokeStyle = "#FFD84D";
+    ctx.lineWidth = 1.5;
+    ctx.roundRect(bx, y - 14, tw, 28, 14);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = "#FFD84D";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
+    ctx.fillText(text, bx + 10, y);
+    ctx.restore();
+  }
+
+  // --- Interaction & Event Listeners (Phase 1) ---
+  const annCanvas = $("annotationCanvas");
+  if (annCanvas) {
+    annCanvas.addEventListener("pointerdown", event => {
+      if (!connected || !lastFrameAt) return;
+      event.preventDefault();
+      annCanvas.setPointerCapture(event.pointerId);
+
+      if (isSimMode) {
+        simDragging = true;
+        simLastX = event.clientX;
+        simLastY = event.clientY;
+        return;
+      }
+
+      const pt = getNormalizedCoords(event);
+      if (!pt) return;
+
+      if (activeTool === "eraser") {
+        eraseAtPoint(pt);
+        return;
+      }
+
+      if (activeTool === "label") {
+        labelTargetPoint = pt;
+        openModal("annotation", pt);
+        return;
+      }
+
+      isDrawing = true;
+      currentStroke = [pt];
+      renderAnnotations();
+    });
+
+    annCanvas.addEventListener("pointermove", event => {
+      if (isSimMode && simDragging) {
+        const dx = event.clientX - simLastX;
+        const dy = event.clientY - simLastY;
+        simYaw += dx * 0.006;
+        simPitch = Math.max(-0.5, Math.min(0.5, simPitch + dy * 0.006));
+        simLastX = event.clientX;
+        simLastY = event.clientY;
+        renderAnnotations();
+        return;
+      }
+
+      if (!isDrawing) return;
+      event.preventDefault();
+      const pt = getNormalizedCoords(event);
+      if (!pt) return;
+
+      const last = currentStroke[currentStroke.length - 1];
+      const distSq = (pt.x - last.x) ** 2 + (pt.y - last.y) ** 2;
+      // Configurable point spacing
+      if (distSq > 0.00003) {
+        currentStroke.push(pt);
+        renderAnnotations();
+      }
+    });
+
+    annCanvas.addEventListener("pointerup", event => {
+      if (isSimMode) {
+        simDragging = false;
+        try { annCanvas.releasePointerCapture(event.pointerId); } catch (_) {}
+        return;
+      }
+
+      if (!isDrawing) return;
+      event.preventDefault();
+      isDrawing = false;
+      try { annCanvas.releasePointerCapture(event.pointerId); } catch (_) {}
+
+      if (currentStroke.length >= 2) {
+        commitCurrentStroke();
+      } else {
+        currentStroke = [];
+        renderAnnotations();
+      }
+    });
+
+    annCanvas.addEventListener("pointercancel", () => {
+      isDrawing = false;
+      simDragging = false;
+      currentStroke = [];
+      renderAnnotations();
+    });
+  }
+
+  function commitCurrentStroke() {
+    const simplified = rdpSimplify(currentStroke, 0.0025);
+    const ann = {
+      id: "ann_" + Date.now() + "_" + Math.random().toString(36).substr(2, 6),
+      tool: activeTool,
+      type: activeTool,
+      points: simplified,
+      color: activeColor,
+      strokeWidth: activeStrokeWidth,
+      frameId: newestFrame,
+      timestamp: Date.now(),
+      eventType: "commit"
+    };
+
+    annotations.push(ann);
+    undoStack.push({ type: "add", annotation: ann });
+    redoStack = [];
+    updateUndoRedoButtons();
+    currentStroke = [];
+    renderAnnotations();
+
+    send({ action: "annotate", data: ann });
+  }
+
+  function eraseAtPoint(pt) {
+    let nearestIdx = -1;
+    let nearestDist = Infinity;
+    const threshold = 0.04; // Normalized distance threshold
+
+    for (let i = 0; i < annotations.length; i++) {
+      const ann = annotations[i];
+      if (!ann.points) continue;
+      for (let j = 0; j < ann.points.length - 1; j++) {
+        const d = distanceToSegment(pt, ann.points[j], ann.points[j + 1]);
+        if (d < nearestDist) {
+          nearestDist = d;
+          nearestIdx = i;
+        }
+      }
+    }
+
+    if (nearestIdx !== -1 && nearestDist <= threshold) {
+      const removed = annotations.splice(nearestIdx, 1)[0];
+      undoStack.push({ type: "delete", annotation: removed });
+      redoStack = [];
+      updateUndoRedoButtons();
+      renderAnnotations();
+      send({ action: "annotate", data: { eventType: "delete", id: removed.id } });
+      showToast("Annotation removed.", "info", 2000);
+    }
+  }
+
+  // --- Toolbar Controls & Listeners ---
+  const toolBtns = [
+    { id: "toolCircle", tool: "circle" },
+    { id: "toolArrow", tool: "arrow" },
+    { id: "toolPen", tool: "pen" },
+    { id: "toolLabel", tool: "label" },
+    { id: "toolEraser", tool: "eraser" }
+  ];
+
+  toolBtns.forEach(({ id, tool }) => {
+    const btn = $(id);
+    if (!btn) return;
+    btn.addEventListener("click", () => {
+      activeTool = tool;
+      toolBtns.forEach(t => $(t.id)?.classList.toggle("active", t.tool === tool));
+    });
+  });
+
+  // Palette swatches
+  document.querySelectorAll(".color-swatch").forEach(swatch => {
+    swatch.addEventListener("click", () => {
+      document.querySelectorAll(".color-swatch").forEach(s => s.classList.remove("active"));
+      swatch.classList.add("active");
+      activeColor = swatch.getAttribute("data-color");
+    });
+  });
+
+  // Stroke width buttons
+  document.querySelectorAll(".stroke-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".stroke-btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      activeStrokeWidth = parseInt(btn.getAttribute("data-width"), 10) || 4;
+    });
+  });
+
+  // Undo / Redo
+  $("btnUndo")?.addEventListener("click", () => {
+    if (!undoStack.length) return;
+    const action = undoStack.pop();
+    if (action.type === "add") {
+      annotations = annotations.filter(a => a.id !== action.annotation.id);
+      redoStack.push(action);
+      send({ action: "annotate", data: { eventType: "delete", id: action.annotation.id } });
+    } else if (action.type === "delete") {
+      annotations.push(action.annotation);
+      redoStack.push(action);
+      send({ action: "annotate", data: action.annotation });
+    } else if (action.type === "clear") {
+      annotations = [...action.previous];
+      redoStack.push(action);
+      annotations.forEach(a => send({ action: "annotate", data: a }));
+    }
+    updateUndoRedoButtons();
+    renderAnnotations();
+  });
+
+  $("btnRedo")?.addEventListener("click", () => {
+    if (!redoStack.length) return;
+    const action = redoStack.pop();
+    if (action.type === "add") {
+      annotations.push(action.annotation);
+      undoStack.push(action);
+      send({ action: "annotate", data: action.annotation });
+    } else if (action.type === "delete") {
+      annotations = annotations.filter(a => a.id !== action.annotation.id);
+      undoStack.push(action);
+      send({ action: "annotate", data: { eventType: "delete", id: action.annotation.id } });
+    } else if (action.type === "clear") {
+      annotations = [];
+      undoStack.push(action);
+      send({ action: "clear-annotations" });
+    }
+    updateUndoRedoButtons();
+    renderAnnotations();
+  });
+
+  // Clear all with confirmation
+  $("btnClearAll")?.addEventListener("click", () => {
+    if (annotations.length === 0) return;
+    if (confirm("Clear all annotations in the technician’s AR view?")) {
+      clearAllAnnotationsInternal(true);
+    }
+  });
+
+  // 3D Wearer Perspective Simulation Toggle
+  $("btnSimPreview")?.addEventListener("click", () => {
+    isSimMode = !isSimMode;
+    $("btnSimPreview").classList.toggle("active", isSimMode);
+    simYaw = 0;
+    simPitch = 0;
+    renderAnnotations();
+    showToast(isSimMode ? "3D Wearer Simulation: Drag mouse to look around." : "Returned to live drawing view.", "info", 3500);
+  });
+
+  // Keyboard shortcuts (Phase 1)
+  document.addEventListener("keydown", event => {
+    if ($("modal") && !$("modal").hidden) return;
+    if (event.target.tagName === "INPUT" || event.target.tagName === "TEXTAREA") return;
+
+    if (event.key === "c" || event.key === "C") $("toolCircle")?.click();
+    else if (event.key === "a" || event.key === "A") $("toolArrow")?.click();
+    else if (event.key === "p" || event.key === "P") $("toolPen")?.click();
+    else if (event.key === "l" || event.key === "L") $("toolLabel")?.click();
+    else if (event.key === "e" || event.key === "E") $("toolEraser")?.click();
+    else if ((event.ctrlKey || event.metaKey) && event.key === "z") {
+      event.preventDefault();
+      $("btnUndo")?.click();
+    } else if ((event.ctrlKey || event.metaKey) && (event.key === "y" || (event.shiftKey && event.key === "Z"))) {
+      event.preventDefault();
+      $("btnRedo")?.click();
+    }
   });
   $('leaveButton').addEventListener('click', () => openModal('leave'));
   $('modalCancel').addEventListener('click', closeModal);
@@ -532,8 +1248,29 @@
     if (modalType === 'annotation') {
       const label = $('modalInput').value.trim().slice(0, 80);
       if (!label) { $('modalInput').focus(); return; }
-      if (send({ action: 'annotate', data: { type: 'text', label, ...annotationPoint } })) showToast('Note placed in the technician’s view.', 'success');
-      else showToast('Connection lost. Note not placed.', 'error');
+      const pt = annotationPoint || labelTargetPoint || { x: 0.5, y: 0.5 };
+      const ann = {
+        id: "ann_" + Date.now() + "_" + Math.random().toString(36).substr(2, 6),
+        tool: "label",
+        type: "label",
+        points: [pt],
+        label: label,
+        color: activeColor || "#FFD84D",
+        strokeWidth: activeStrokeWidth || 4,
+        frameId: newestFrame,
+        timestamp: Date.now(),
+        eventType: "commit"
+      };
+      annotations.push(ann);
+      undoStack.push({ type: "add", annotation: ann });
+      redoStack = [];
+      updateUndoRedoButtons();
+      renderAnnotations();
+      if (send({ action: "annotate", data: ann })) {
+        showToast("Label placed in technician’s AR view.", "success");
+      } else {
+        showToast("Connection lost. Label not placed.", "error");
+      }
       closeModal();
     } else if (modalType === 'leave') {
       userLeaving = true;

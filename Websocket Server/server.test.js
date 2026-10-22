@@ -40,6 +40,37 @@ test('session pairing, role checks, chat, annotation and frame routing', async (
     web.send(JSON.stringify({ action: 'annotate', data: { type: 'text', label: 'Valve', x: .5, y: .4 } }));
     assert.equal(JSON.parse(await next(specs)).data.label, 'Valve');
 
+    // Rich spatial doodle routing
+    web.send(JSON.stringify({
+      action: 'annotate',
+      data: {
+        id: 'doodle-1',
+        tool: 'arrow',
+        points: [[0.1, 0.2], [0.3, 0.4]],
+        color: '#FF8A3D',
+        strokeWidth: 4,
+        eventType: 'commit'
+      }
+    }));
+    const doodleMsg = JSON.parse(await next(specs));
+    assert.equal(doodleMsg.action, 'annotate');
+    assert.equal(doodleMsg.data.id, 'doodle-1');
+    assert.equal(doodleMsg.data.tool, 'arrow');
+
+    // Annotation feedback routing from specs to web
+    specs.send(JSON.stringify({
+      action: 'annotation-feedback',
+      data: { id: 'doodle-1', placementMode: 'A', surfaceHit: true }
+    }));
+    const feedbackMsg = JSON.parse(await next(web));
+    assert.equal(feedbackMsg.action, 'annotation-feedback');
+    assert.equal(feedbackMsg.data.placementMode, 'A');
+
+    // Clear annotations routing
+    web.send(JSON.stringify({ action: 'clear-annotations' }));
+    const clearMsg = JSON.parse(await next(specs));
+    assert.equal(clearMsg.action, 'clear-annotations');
+
     const frame = 'A'.repeat(120) + '|||FRAME_END|||';
     specs.send(frame);
     assert.equal(await next(web), frame);

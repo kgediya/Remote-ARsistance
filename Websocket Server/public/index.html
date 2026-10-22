@@ -27,6 +27,15 @@
   <symbol id="i-signal" viewBox="0 0 24 24"><path d="M4 18v2m5-6v6m5-10v10m5-16v16"/></symbol>
   <symbol id="i-video" viewBox="0 0 24 24"><rect x="3" y="6" width="14" height="12" rx="2"/><path d="m17 10 4-3v10l-4-3"/></symbol>
   <symbol id="i-spark" viewBox="0 0 24 24"><path d="m12 2 1.8 7.2L21 11l-7.2 1.8L12 20l-1.8-7.2L3 11l7.2-1.8L12 2ZM19 18l.5 1.5L21 20l-1.5.5L19 22l-.5-1.5L17 20l1.5-.5L19 18Z"/></symbol>
+  <symbol id="i-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+  <symbol id="i-arrow-tool" viewBox="0 0 24 24"><path d="M5 19 19 5m0 0h-8m8 0v8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-pen" viewBox="0 0 24 24"><path d="M12 19l7-7 3 3-7 7-3-3zM18 13l-1.5-1.5M2 22l5-1-4-4-1 5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-label" viewBox="0 0 24 24"><rect x="4" y="6" width="16" height="12" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 12h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="i-eraser" viewBox="0 0 24 24"><path d="m18 14-6-6-7 7a2.8 2.8 0 0 0 0 4l2 2a2.8 2.8 0 0 0 4 0l7-7Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-undo" viewBox="0 0 24 24"><path d="M3 9h11a5 5 0 0 1 5 5v1a5 5 0 0 1-5 5H6M3 9l4-4M3 9l4 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-redo" viewBox="0 0 24 24"><path d="M21 9H10a5 5 0 0 0-5 5v1a5 5 0 0 0 5 5h8M21 9l-4-4m4 4-4 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18m-2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-goggles" viewBox="0 0 24 24"><circle cx="7" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="17" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M11 12h2M3 12h1M20 12h1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
 </svg>
 <header class="app-header">
   <a class="brand" href="/" aria-label="RelayView home"><span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></span><span>Relay<span class="brand-accent">View</span></span></a>
@@ -48,11 +57,11 @@
       <div class="join-card">
         <div class="join-card-top"><span class="join-step">01 / CONNECT</span><span class="join-orbit" aria-hidden="true"><span></span></span></div>
         <h2>Join a session</h2>
-        <p>Ask the technician for the session code displayed on their Spectacles.</p>
+        <p>Ask the technician for the session code displayed on their XR / Spatial Glasses.</p>
         <form id="joinForm" novalidate>
           <label for="sessionCode">SESSION CODE</label>
           <input id="sessionCode" inputmode="text" maxlength="12" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="IN-XXX-XXX" aria-describedby="codeHint" required>
-          <small id="codeHint">Enter code from Spectacles (e.g. IN-XXX-XXX or XXX-XXX)</small>
+          <small id="codeHint">Enter code from XR / Spatial Glasses (e.g. IN-XXX-XXX or XXX-XXX)</small>
           <div id="regionHint" class="region-hint" hidden><span class="region-hint-dot"></span><span id="regionHintText">Routing to regional gateway</span></div>
           <button id="joinButton" class="button button-primary join-submit" type="submit"><span>Connect to technician</span><svg class="icon"><use href="#i-arrow"/></svg></button>
         </form>
@@ -79,24 +88,80 @@
     <div class="workspace-grid">
       <div class="visual-column">
         <section class="video-card" aria-label="Live technician view">
-          <div class="card-heading"><div class="card-heading-title"><span class="live-indicator" id="liveIndicator"></span><span>Technician view</span></div><div class="camera-meta"><svg class="icon"><use href="#i-video"/></svg> SPECTACLES CAMERA</div></div>
+          <div class="card-heading"><div class="card-heading-title"><span class="live-indicator" id="liveIndicator"></span><span>Technician view</span></div><div class="camera-meta"><svg class="icon"><use href="#i-video"/></svg> XR / SPATIAL GLASSES CAMERA</div></div>
           <div class="video-stage" id="videoStage">
             <div class="stage-grid" aria-hidden="true"></div>
             <div class="video-placeholder" id="videoPlaceholder"><span class="placeholder-icon"><svg class="icon"><use href="#i-video"/></svg></span><strong>Waiting for live view</strong><span>The camera feed will appear when the technician is ready.</span></div>
-            <canvas id="liveCanvas" width="480" height="564" aria-label="Live camera feed. Click to annotate." hidden></canvas>
+            <canvas id="liveCanvas" width="480" height="564" aria-label="Live camera feed." hidden></canvas>
+            <canvas id="annotationCanvas" class="annotation-canvas" width="480" height="564" aria-label="Spatial doodle drawing canvas" hidden></canvas>
+            <div class="annotation-toolbar" id="annotationToolbar" role="toolbar" aria-label="Spatial annotation tools" hidden>
+              <div class="toolbar-group">
+                <button type="button" class="tool-btn active" data-tool="circle" id="toolCircle" title="Circle (C) - Highlight target area">
+                  <svg class="icon"><use href="#i-circle"/></svg>
+                </button>
+                <button type="button" class="tool-btn" data-tool="arrow" id="toolArrow" title="Arrow (A) - Directional guidance">
+                  <svg class="icon"><use href="#i-arrow-tool"/></svg>
+                </button>
+                <button type="button" class="tool-btn" data-tool="pen" id="toolPen" title="Pen (P) - Freehand doodle">
+                  <svg class="icon"><use href="#i-pen"/></svg>
+                </button>
+                <button type="button" class="tool-btn" data-tool="label" id="toolLabel" title="Label (L) - Text label">
+                  <svg class="icon"><use href="#i-label"/></svg>
+                </button>
+                <button type="button" class="tool-btn" data-tool="eraser" id="toolEraser" title="Eraser (E) - Tap annotation to erase">
+                  <svg class="icon"><use href="#i-eraser"/></svg>
+                </button>
+              </div>
+              <div class="toolbar-divider"></div>
+              <div class="toolbar-group palette-group" aria-label="Color palette">
+                <button type="button" class="color-swatch active" data-color="#FFD84D" style="--swatch-color: #FFD84D;" title="Highlight Yellow (#FFD84D)"></button>
+                <button type="button" class="color-swatch" data-color="#FF8A3D" style="--swatch-color: #FF8A3D;" title="Directional Orange (#FF8A3D)"></button>
+                <button type="button" class="color-swatch" data-color="#42D9F5" style="--swatch-color: #42D9F5;" title="Cyan (#42D9F5)"></button>
+                <button type="button" class="color-swatch" data-color="#FFFFFF" style="--swatch-color: #FFFFFF;" title="White (#FFFFFF)"></button>
+              </div>
+              <div class="toolbar-divider"></div>
+              <div class="toolbar-group stroke-group" aria-label="Stroke width">
+                <button type="button" class="stroke-btn" data-width="2" title="Thin (2px)"><span class="stroke-dot" style="width: 3px; height: 3px;"></span></button>
+                <button type="button" class="stroke-btn active" data-width="4" title="Medium (4px)"><span class="stroke-dot" style="width: 5px; height: 5px;"></span></button>
+                <button type="button" class="stroke-btn" data-width="8" title="Thick (8px)"><span class="stroke-dot" style="width: 9px; height: 9px;"></span></button>
+              </div>
+              <div class="toolbar-divider"></div>
+              <div class="toolbar-group">
+                <button type="button" class="tool-btn" id="btnUndo" title="Undo (Ctrl+Z)" disabled>
+                  <svg class="icon"><use href="#i-undo"/></svg>
+                </button>
+                <button type="button" class="tool-btn" id="btnRedo" title="Redo (Ctrl+Y)" disabled>
+                  <svg class="icon"><use href="#i-redo"/></svg>
+                </button>
+                <button type="button" class="tool-btn tool-btn-danger" id="btnClearAll" title="Clear all annotations">
+                  <svg class="icon"><use href="#i-trash"/></svg>
+                </button>
+              </div>
+              <div class="toolbar-divider"></div>
+              <div class="toolbar-group">
+                <div class="placement-badge" id="placementBadge" title="Headset AR tracking & anchoring status">
+                  <span class="badge-dot" id="placementDot"></span>
+                  <span id="placementText">Mode A: Surface Anchored</span>
+                </div>
+                <button type="button" class="sim-toggle-btn" id="btnSimPreview" title="Toggle Mock 3D Wearer Perspective (Simulation)">
+                  <svg class="icon"><use href="#i-goggles"/></svg>
+                  <span>3D Sim</span>
+                </button>
+              </div>
+            </div>
             <div class="feed-stalled-overlay" id="feedWarning" hidden>
               <div class="feed-stalled-content">
                 <div class="stalled-pulse-ring">
                   <svg class="icon"><use href="#i-video"/></svg>
                 </div>
                 <strong id="feedWarningTitle">Camera feed interrupted</strong>
-                <span id="feedWarningText">Waiting for video stream from technician's Spectacles...</span>
+                <span id="feedWarningText">Waiting for video stream from technician's XR / Spatial Glasses...</span>
               </div>
             </div>
             <div class="stage-corner stage-corner-tl" aria-hidden="true"></div><div class="stage-corner stage-corner-tr" aria-hidden="true"></div><div class="stage-corner stage-corner-bl" aria-hidden="true"></div><div class="stage-corner stage-corner-br" aria-hidden="true"></div>
             <span class="stage-live-tag" id="feedBadge"><span></span> WAITING FOR FEED</span>
           </div>
-          <div class="video-foot"><span><svg class="icon"><use href="#i-pin"/></svg> Click anywhere on the live image to add a note</span><span id="latency">Measuring connection…</span></div>
+          <div class="video-foot"><span id="videoHint"><svg class="icon"><use href="#i-pen"/></svg> Draw directly on live view: Circle, Arrow, Pen, or Label</span><span id="latency">Measuring connection…</span></div>
         </section>
         <section class="call-card" aria-label="Voice call controls">
           <div class="call-copy"><div class="call-icon"><svg class="icon"><use href="#i-headset"/></svg></div><div><strong>Voice connection</strong><span id="callState">Start a call to speak with the technician</span></div></div>
@@ -105,7 +170,7 @@
       </div>
       <aside class="guidance-card" aria-label="Guidance and messages">
         <div class="guidance-header"><div><span class="guidance-kicker">CONVERSATION</span><h2>Guidance</h2></div><span class="guidance-symbol"><svg class="icon"><use href="#i-spark"/></svg></span></div>
-        <div class="guidance-intro">Send instructions the technician can read on their Spectacles. They can reply by voice.</div>
+        <div class="guidance-intro">Send instructions the technician can read on their XR / Spatial Glasses. They can reply by voice.</div>
         <div id="chatLog" class="chat-log" role="log" aria-live="polite" aria-label="Session messages"><div class="chat-empty" id="chatEmpty"><span class="empty-icon"><svg class="icon"><use href="#i-spark"/></svg></span><strong>A clear line of sight</strong><span>Your conversation will appear here.</span></div></div>
         <form id="chatForm" class="chat-compose"><label for="chatInput">MESSAGE</label><div class="chat-input-wrap"><textarea id="chatInput" rows="2" maxlength="500" placeholder="Share a step or suggestion…" aria-label="Message" required></textarea><div class="chat-tools"><button type="button" id="micButton" class="icon-button" hidden aria-label="Dictate a message" title="Dictate a message"><svg class="icon"><use href="#i-mic"/></svg></button><button id="sendButton" type="submit" class="send-button" aria-label="Send message" title="Send message"><svg class="icon"><use href="#i-send"/></svg></button></div></div><small>Press Enter to send · Shift+Enter for a new line</small></form>
       </aside>

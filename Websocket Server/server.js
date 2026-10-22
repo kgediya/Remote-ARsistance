@@ -185,7 +185,7 @@ function createServer() {
         return;
       }
       const session = sessions.get(ws.sessionCode);
-      if (!paired(session)) { send(ws, { error: 'No active peer' }); return; }
+      if (!session) { send(ws, { error: 'No active peer' }); return; }
       session.lastActivity = Date.now();
       if (msg.action === 'ping' && Number.isFinite(msg.sentAt)) {
         send(ws, { action: 'pong', sentAt: msg.sentAt });
@@ -193,14 +193,19 @@ function createServer() {
         const message = msg.data.message.trim().slice(0, 500);
         if (message) {
           const payload = { action: 'chat', from: 'web', data: { message } };
-          send(session.specs, payload); send(session.web, payload);
+          if (session.specs) send(session.specs, payload);
+          send(session.web, payload);
         }
       } else if (msg.action === 'specs-chat' && ws.role === 'specs' && typeof msg.text === 'string') {
         const message = msg.text.trim().slice(0, 500);
         if (message) {
           const payload = { action: 'chat', from: 'specs', data: { message } };
-          send(session.web, payload); send(session.specs, payload);
+          if (session.web) send(session.web, payload);
+          send(session.specs, payload);
         }
+      } else if (!paired(session)) {
+        send(ws, { error: 'No active peer' });
+        return;
       } else if (msg.action === 'annotate' && ws.role === 'web') {
         const data = msg.data;
         if (data && typeof data === 'object') {

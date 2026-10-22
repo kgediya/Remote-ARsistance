@@ -114,8 +114,10 @@
     lastFrameAt = 0;
     newestFrame++;
     $('liveCanvas').hidden = true;
-    if ($('annotationCanvas')) $('annotationCanvas').hidden = true;
-    if ($('annotationToolbar')) $('annotationToolbar').hidden = true;
+    if (full) {
+      if ($('annotationCanvas')) $('annotationCanvas').hidden = true;
+      if ($('annotationToolbar')) $('annotationToolbar').hidden = true;
+    }
     $('videoPlaceholder').hidden = false;
     $('feedWarning').hidden = true;
     $('latency').textContent = 'Measuring connection…';
@@ -174,24 +176,32 @@
   function fitCanvas() {
     const canvas = $('liveCanvas');
     const annCanvas = $('annotationCanvas');
-    if (canvas.hidden || !canvas.width || !canvas.height) return;
+    const toolbar = $('annotationToolbar');
     const stage = $('videoStage');
-    const scale = Math.min(stage.clientWidth / canvas.width, stage.clientHeight / canvas.height);
-    const w = Math.floor(canvas.width * scale) + 'px';
-    const h = Math.floor(canvas.height * scale) + 'px';
-    canvas.style.width = w;
-    canvas.style.height = h;
+    if (!stage) return;
+
+    const cw = (canvas && canvas.width > 0) ? canvas.width : 480;
+    const ch = (canvas && canvas.height > 0) ? canvas.height : 564;
+    const stageW = stage.clientWidth || 480;
+    const stageH = stage.clientHeight || 564;
+    const scale = Math.min(stageW / cw, stageH / ch);
+    const w = Math.floor(cw * scale) + 'px';
+    const h = Math.floor(ch * scale) + 'px';
+
+    if (canvas) {
+      canvas.style.width = w;
+      canvas.style.height = h;
+    }
     if (annCanvas) {
-      if (annCanvas.width !== canvas.width || annCanvas.height !== canvas.height) {
-        annCanvas.width = canvas.width;
-        annCanvas.height = canvas.height;
+      if (annCanvas.width !== cw || annCanvas.height !== ch) {
+        annCanvas.width = cw;
+        annCanvas.height = ch;
       }
       annCanvas.style.width = w;
       annCanvas.style.height = h;
-      annCanvas.hidden = false;
+      if (connected) annCanvas.hidden = false;
       if (typeof renderAnnotations === 'function') renderAnnotations();
     }
-    const toolbar = $('annotationToolbar');
     if (toolbar && connected) toolbar.hidden = false;
   }
   window.addEventListener('resize', fitCanvas);
@@ -221,12 +231,13 @@
           const ctx = canvas.getContext('2d');
           ctx.drawImage(bitmap, 0, 0);
           bitmap.close();
+          const wasHidden = canvas.hidden;
           canvas.hidden = false;
           $('videoPlaceholder').hidden = true;
           $('feedWarning').hidden = true;
           lastFrameAt = performance.now();
           setFeedState('live');
-          if (resized) fitCanvas();
+          if (resized || wasHidden) fitCanvas();
         }).catch(() => {});
       } catch {
         /* Drop corrupted frame gracefully */
@@ -241,12 +252,13 @@
           canvas.height = image.height;
         }
         canvas.getContext('2d').drawImage(image, 0, 0);
+        const wasHidden = canvas.hidden;
         canvas.hidden = false;
         $('videoPlaceholder').hidden = true;
         $('feedWarning').hidden = true;
         lastFrameAt = performance.now();
         setFeedState('live');
-        if (resized) fitCanvas();
+        if (resized || wasHidden) fitCanvas();
       };
       image.src = 'data:image/jpeg;base64,' + base64;
     }
@@ -371,10 +383,13 @@
         $('toast').hidden = true;
         document.title = 'Live session — RelayView';
         if (!isResume) {
-          clearView(true);
+          clearView(false);
         } else {
           clearView(false);
         }
+        if ($('annotationToolbar')) $('annotationToolbar').hidden = false;
+        if ($('annotationCanvas')) $('annotationCanvas').hidden = false;
+        fitCanvas();
         if (msg.region && REGION_GATEWAYS[msg.region]) {
           currentRegion = REGION_GATEWAYS[msg.region];
         }
@@ -417,7 +432,9 @@
           updatePlacementStatus(msg.data.placementMode, msg.data.surfaceHit, msg.data.distanceMeters);
         }
       } else if (msg.action === 'chat' && typeof msg.data?.message === 'string') {
-        appendMessage(msg.from, msg.data.message);
+        if (msg.from !== 'web') {
+          appendMessage(msg.from || 'specs', msg.data.message);
+        }
       }
     };
 
@@ -506,8 +523,12 @@
     event.preventDefault();
     const message = $('chatInput').value.trim();
     if (!message) return;
-    if (send({ action: 'chat', data: { message } })) $('chatInput').value = '';
-    else showToast('Connection lost. Message not sent.', 'error');
+    if (send({ action: 'chat', data: { message } })) {
+      appendMessage('web', message);
+      $('chatInput').value = '';
+    } else {
+      showToast('Connection lost. Message not sent.', 'error');
+    }
   });
   $('copyCodeButton').addEventListener('click', async () => {
     try {
@@ -1004,7 +1025,7 @@
   const annCanvas = $("annotationCanvas");
   if (annCanvas) {
     annCanvas.addEventListener("pointerdown", event => {
-      if (!connected || !lastFrameAt) return;
+      if (!connected) return;
       event.preventDefault();
       annCanvas.setPointerCapture(event.pointerId);
 

@@ -712,12 +712,22 @@
       return;
     }
 
-    // Render committed annotations
+    // Smooth handoff to 3D Mixed Reality composited stream
+    let needsReRender = false;
+    const now = Date.now();
     for (const ann of annotations) {
-      drawSingleAnnotation(ctx, ann, w, h);
+      const age = now - (ann.committedAt || 0);
+      if (age < 220) {
+        const opacity = Math.max(0, 1 - (age / 220));
+        ctx.save();
+        ctx.globalAlpha = opacity;
+        drawSingleAnnotation(ctx, ann, w, h);
+        ctx.restore();
+        needsReRender = true;
+      }
     }
 
-    // Render live drawing stroke preview
+    // Render live drawing stroke preview (immediate 0ms feedback)
     if (isDrawing && currentStroke.length > 0) {
       const previewAnn = {
         tool: activeTool,
@@ -728,6 +738,10 @@
         label: ""
       };
       drawSingleAnnotation(ctx, previewAnn, w, h, true);
+    }
+
+    if (needsReRender) {
+      requestAnimationFrame(renderAnnotations);
     }
   }
 
@@ -1085,6 +1099,7 @@
       strokeWidth: activeStrokeWidth,
       frameId: newestFrame,
       timestamp: Date.now(),
+      committedAt: Date.now(),
       eventType: "commit"
     };
 
@@ -1259,6 +1274,7 @@
         strokeWidth: activeStrokeWidth || 4,
         frameId: newestFrame,
         timestamp: Date.now(),
+        committedAt: Date.now(),
         eventType: "commit"
       };
       annotations.push(ann);

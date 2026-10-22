@@ -11,6 +11,11 @@ const REGIONAL_ENDPOINTS = [
         region: "US",
         host: "remote-arsistance-597953322753.us-central1.run.app",
         name: "US Central (us-central1)"
+    },
+    {
+        region: "EU",
+        host: "remote-arsistance-597953322753.europe-west1.run.app",
+        name: "Belgium, Europe (europe-west1)"
     }
 ];
 
